@@ -1,0 +1,16 @@
+{
+  "name": "Following the Bitch Ass Money",
+  "short_name": "Money",
+  "description": "Monthly 7,000 balance. Log what you spend and see what's left.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#150f1a",
+  "theme_color": "#150f1a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
