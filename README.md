@@ -10,7 +10,8 @@ A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calori
 - Progress (e.g. 2/3) and a progress bar at the top; a completion message at 3/3.
 - Each calendar day (phone's local time) is stored separately. A new day starts unchecked, even if the app stays open past midnight.
 - **History** covers the last 365 days: streaks, perfect days, a month calendar (swipe or use the arrows to go back 12 months), tap any day to see what was done and when, and per-task completion rates.
-- Saved in the browser's local storage; works offline via a service worker.
+- Saved in the browser's local storage (keys starting with `dailyTasks.` only; the Money app's data is never touched). A copy is kept at the start of each day, and data that can't be read is set aside and recovered from that copy instead of being overwritten.
+- Works offline via a service worker. Launch never waits on the network; a new version installs in the background and the app reloads into it when it's not in use (otherwise it shows "Update ready").
 
 ## Files
 
@@ -18,7 +19,7 @@ A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calori
 | --- | --- |
 | `index.html` | The whole app (HTML, CSS, JS) |
 | `manifest.webmanifest` | Home-screen install settings |
-| `sw.js` | Offline cache (bump `VERSION` after editing any file) |
+| `sw.js` | Offline cache (after editing any file, bump `VERSION` here and `APP_VERSION` in `index.html` together, e.g. `daily-tasks-v6` / `v6`) |
 | `icons/` | App icons |
 
 No build step. To run locally: `python3 -m http.server` and open http://localhost:8000.

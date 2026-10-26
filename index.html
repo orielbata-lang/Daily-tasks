@@ -6,6 +6,8 @@
 <title>Daily Tasks</title>
 <meta name="description" content="Three daily check-ins: pills, calories, workout.">
 <meta name="theme-color" content="#111315">
+<meta name="color-scheme" content="dark">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,14 +19,23 @@
 /* Layout: four tabs behind a bottom tab bar. Today = progress, three task cards and a year of history.
    Pills = six checkboxes. Calories = a calculator toward 3,500 kcal. Workout = today's A/B session, set by set.
    A task is approved only when its tab is complete. */
+/* Design tokens. Not every rule uses them yet; new CSS should. */
 :root {
+  /* Surfaces */
   --bg: #111315;                       /* charcoal */
   --card: #1a1d20;
   --card-hi: #202428;
-  --line: rgba(255, 255, 255, .07);
-  --fg: #f4f5f6;
-  --muted: #8b9198;
-  --faint: #50565d;
+  --card-press: #262b30;
+  --line: rgba(255, 255, 255, .07);    /* 1px card borders */
+  --hairline: rgba(255, 255, 255, .12);/* 0.5px separators and bar edges */
+  /* Text */
+  --label-1: #f4f5f6;
+  --label-2: #8b9198;                  /* all secondary text; never on tinted fills */
+  --faint: #50565d;                    /* decoration, disabled controls, untracked days only */
+  --ring: #6b7279;                     /* unchecked rings */
+  --fg: var(--label-1);                /* alias */
+  --muted: var(--label-2);             /* alias */
+  /* Accents */
   --green: #32d27a;
   --green-ink: #062413;                /* text on solid green */
   --green-a1: rgba(50, 210, 122, .10);
@@ -32,15 +43,59 @@
   --green-a3: rgba(50, 210, 122, .48);
   --violet: #a99bff;                   /* pills */
   --amber: #f6b54e;                    /* calories */
+  --amber-ink: #2b1a00;                /* text on solid amber */
   --blue: #5fb4ff;                     /* workout */
   --orange: #ff8f57;                   /* streak */
+  --red: #ff6b6b;                      /* errors and destructive actions only */
+  /* Calendar ramp (circle fills) */
+  --cal-0: rgba(255, 255, 255, .06);
+  --cal-1: rgba(50, 210, 122, .22);
+  --cal-2: rgba(50, 210, 122, .50);
+  --cal-3: #32d27a;
+  /* Type scale (size / line-height weight tracking) */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-num: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --r-lg: 22px;
-  --r-md: 16px;
+  --fs-display: 46px;                  /* 46/46 700 -.02em: hero numbers */
+  --fs-large: 34px;                    /* 34/41 700 -.025em: h1 */
+  --fs-title1: 28px;                   /* 28/34 700 -.015em: stat values, exercise targets */
+  --fs-key: 24px;                      /* 24/28 600: keypad digits */
+  --fs-title2: 22px;                   /* 22/28 700 -.02em: h2, sheet title */
+  --fs-headline: 17px;                 /* 17/22 600 -.01em */
+  --fs-body: 17px;                     /* 17/22 400 */
+  --fs-input: 16px;                    /* inputs and textareas only */
+  --fs-subhead: 15px;                  /* 15/20 400 */
+  --fs-footnote: 13px;                 /* 13/18 */
+  --fs-caption: 12px;                  /* 12/16 */
+  --fs-caption2: 11px;                 /* 11/13 600 .06em uppercase */
+  --fs-tab: 10.5px;                    /* 10.5/12 600 .01em */
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  /* Radii */
+  --r-lg: 22px;                        /* cards, sheet top corners */
+  --r-md: 14px;                        /* keys, sets, banners, inner rows */
+  --r-sm: 10px;                        /* small tiles, badges */
+  --r-pill: 999px;
+  /* Motion */
   --ease: cubic-bezier(.2, .8, .2, 1);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --dur-1: 100ms;                      /* press */
+  --dur-2: 180ms;                      /* fades */
+  --dur-3: 320ms;                      /* sheet */
+  --dur-4: 500ms;                      /* bars and segments */
   --shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .18);
+  /* Safe areas and bars (tests can override these) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --tabbar-h: 49px;
+  --topbar-h: 44px;
   color-scheme: dark;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -165,9 +220,9 @@ h1 { margin: 0; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spa
   transition: background-color .35s var(--ease), border-color .35s var(--ease), transform .18s var(--ease);
 }
 .task:active { transform: scale(.975); }
-.task .tile { width: 52px; height: 52px; border-radius: var(--r-md); transition: transform .4s var(--spring); }
+.task .tile { width: 52px; height: 52px; border-radius: 16px; }
 .task .tile .ic { width: 26px; height: 26px; }
-.task.pop .tile { transform: rotate(-8deg) scale(1.06); }
+.task.pop .tile { animation: tilt .42s var(--spring); }
 .task-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .task-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; transition: color .35s var(--ease); }
 .task-sub { font-size: 14px; color: var(--muted); transition: color .35s var(--ease); }
@@ -209,6 +264,7 @@ h1 { margin: 0; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spa
 .task.pop .check::after { animation: ripple .6s var(--ease); }
 @keyframes pop { 0% { transform: scale(.85); } 55% { transform: scale(1.15); } 100% { transform: scale(1); } }
 @keyframes ripple { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+@keyframes tilt { 0%, 100% { transform: none; } 40% { transform: rotate(-8deg) scale(1.06); } }
 
 /* ---------- Completion ---------- */
 .done-note {
@@ -409,7 +465,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .calc-display {
   display: flex; align-items: baseline; justify-content: flex-end; gap: 8px;
   min-height: 78px; padding: 12px 18px;
-  border-radius: var(--r-md); background: rgba(0, 0, 0, .22); border: 1px solid var(--line);
+  border-radius: 16px; background: rgba(0, 0, 0, .22); border: 1px solid var(--line);
   overflow: hidden;
 }
 .calc-display b { font-size: 46px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
@@ -436,7 +492,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .key.fn { font-size: 16px; color: var(--muted); }
 .key .ic { width: 22px; height: 22px; }
 .add-btn {
-  min-height: 56px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  min-height: 56px; border: 0; border-radius: 16px; cursor: pointer;
   background: var(--amber); color: #2b1a00;
   font-size: 17px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -457,6 +513,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .empty-note { margin: 0; padding: 18px; text-align: center; color: var(--muted); font-size: 15px; border: 1px dashed var(--line); border-radius: var(--r-lg); }
 
 /* Workout */
+.ex-list { display: flex; flex-direction: column; gap: 12px; }
 .ex { padding: 16px; display: flex; flex-direction: column; gap: 14px; transition: border-color .3s var(--ease); }
 .ex.complete { border-color: var(--green-a2); }
 .ex-head { display: flex; align-items: center; gap: 12px; }
@@ -501,6 +558,24 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast .ic { width: 18px; height: 18px; color: var(--green); stroke-width: 3; }
 
+/* ---------- System banner: storage and display problems, shown above every tab ---------- */
+#sysBanner { display: flex; flex-direction: column; gap: 12px; }
+.banner { padding: 14px 16px; border-left: 3px solid var(--red); display: flex; flex-direction: column; gap: 4px; }
+.banner.warn { border-left-color: var(--amber); }
+.banner-title { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--label-1); }
+.banner-body { margin: 0; font-size: 15px; line-height: 20px; color: var(--label-2); }
+.banner-actions { display: flex; flex-wrap: wrap; gap: 0 20px; margin-bottom: -10px; }
+.banner-actions button {
+  min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--green); font-size: 15px; font-weight: 600;
+}
+.banner textarea {
+  width: 100%; margin: 8px 0 0; padding: 10px 12px;
+  border-radius: var(--r-md); border: 1px solid var(--line); background: rgba(0, 0, 0, .22);
+  color: var(--label-1); font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -508,6 +583,8 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 </head>
 <body>
 <main class="app" id="app">
+ <div id="sysBanner" role="alert" hidden></div>
+
  <section class="view" id="view-today">
   <header>
     <p class="eyebrow" id="date"></p>
@@ -630,7 +707,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     </div>
     <div class="bar"><i id="woBar"></i></div>
   </section>
-  <div class="view" id="exList" style="gap: 12px"></div>
+  <div class="ex-list" id="exList"></div>
   <p class="next-note" id="woNext"></p>
  </section>
 </main>
@@ -650,35 +727,19 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 (function () {
   'use strict';
 
+  var APP_VERSION = 'v6'; // must equal the suffix of VERSION in sw.js; bump both together
+
+  /* =====================================================================
+     SETTINGS — what each task needs
+     ===================================================================== */
   var TASKS = [
     { id: 'pills', name: 'Pills Taken', icon: 'pill', color: 'var(--violet)', sub: 'Medication' },
     { id: 'calories', name: 'Calories Eaten', icon: 'utensils', color: 'var(--amber)', sub: 'Nutrition' },
     { id: 'workout', name: 'Workout Done', icon: 'dumbbell', color: 'var(--blue)', sub: 'Exercise' }
   ];
-
-  // Line icons (24×24, stroked with currentColor).
-  var ICONS = {
-    pill: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
-    utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
-    dumbbell: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.66 21.49a2 2 0 1 1-2.83-2.83l-1.77 1.77a2 2 0 1 1-2.83-2.83l6.37-6.36a2 2 0 1 1 2.83 2.83l-1.77 1.77a2 2 0 1 1 2.83 2.83z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.4 12.77a2 2 0 1 1-2.83-2.83l1.77-1.77a2 2 0 1 1-2.83-2.83l2.83-2.83a2 2 0 1 1 2.83 2.83l1.77-1.77a2 2 0 1 1 2.83 2.83z"/>',
-    flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
-    trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
-    star: '<path d="M11.53 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.91l5.16-.75a2.12 2.12 0 0 0 1.6-1.16z"/>',
-    check: '<path d="M20 6 9 17l-5-5"/>',
-    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/>',
-    plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
-    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-    backspace: '<path d="M21 5H9l-7 7 7 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/>',
-    chevron: '<path d="m9 18 6-6-6-6"/>',
-    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/>'
-  };
-  function icon(name) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
-  function tile(t) { return '<span class="tile" style="--accent: ' + t.color + '" aria-hidden="true">' + icon(t.icon) + '</span>'; }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-icon]'), function (el) { el.innerHTML = icon(el.getAttribute('data-icon')); });
-  var STORAGE_KEY = 'dailyTasks.v1';
+  var VIEWS = ['today'].concat(TASKS.map(function (t) { return t.id; }));
   var RANGE = 365; // days of history, including today
 
-  // ---- What each task needs
   var PILLS = [
     { id: 'finasteride', name: 'Finasteride' },
     { id: 'iron', name: 'Iron' },
@@ -705,26 +766,35 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     ] }
   };
 
-  // ---- Storage
-  // { firstDay: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': {
-  //     pills: { finasteride: <ms when checked>, … },
-  //     calories: [ { kcal: 450, ts: <ms> }, … ],
-  //     workout: { type: 'A', level: 2, sets: { pushup_mid: [<ms>|0, <ms>|0], … } } } } }
-  // Older saves stored a plain timestamp or `true` per task; that still counts as done.
-  var memoryStore = null; // used only if localStorage is unavailable
+  // Line icons (24×24, stroked with currentColor).
+  var ICONS = {
+    pill: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+    utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+    dumbbell: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.66 21.49a2 2 0 1 1-2.83-2.83l-1.77 1.77a2 2 0 1 1-2.83-2.83l6.37-6.36a2 2 0 1 1 2.83 2.83l-1.77 1.77a2 2 0 1 1 2.83 2.83z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.4 12.77a2 2 0 1 1-2.83-2.83l1.77-1.77a2 2 0 1 1-2.83-2.83l2.83-2.83a2 2 0 1 1 2.83 2.83l1.77-1.77a2 2 0 1 1 2.83 2.83z"/>',
+    flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+    trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+    star: '<path d="M11.53 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.91l5.16-.75a2.12 2.12 0 0 0 1.6-1.16z"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/>',
+    plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    backspace: '<path d="M21 5H9l-7 7 7 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/>',
+    chevron: '<path d="m9 18 6-6-6-6"/>',
+    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/>'
+  };
+  // The animated check inside .check circles (task cards and pill rows).
+  var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function icon(name) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
+  function tile(t) { return '<span class="tile" style="--accent: ' + t.color + '" aria-hidden="true">' + icon(t.icon) + '</span>'; }
 
-  function load() {
-    var data = null;
-    try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { data = memoryStore; }
-    if (!data || typeof data !== 'object' || !data.days || typeof data.days !== 'object') data = { days: {} };
-    return data;
-  }
-  function save(data) {
-    memoryStore = data;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
-  }
+  function noop() {}
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function isObj(x) { return x !== null && typeof x === 'object' && !Array.isArray(x); }
+  var $ = function (id) { return document.getElementById(id); };
 
-  // ---- Dates: always the phone's local calendar day, never UTC.
+  /* =====================================================================
+     DATES AND FORMATTING — always the phone's local calendar day, always English
+     ===================================================================== */
   function keyFor(d) {
     var m = d.getMonth() + 1, day = d.getDate();
     return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
@@ -732,60 +802,361 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   function dateFromKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
   function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  function fmt(d, opts) { return d.toLocaleDateString(undefined, opts); }
-  function timeOf(v) { return typeof v === 'number' ? new Date(v).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''; }
-  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+  // A real calendar day written as YYYY-MM-DD (so '2026-13-45' is not one).
+  function isDayKey(k) { return typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k) && keyFor(dateFromKey(k)) === k; }
 
-  var $ = function (id) { return document.getElementById(id); };
-  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  var viewKey = null;    // the day shown as "today"
-  var viewMonth = null;  // first day of the month shown in the calendar
-  var selectedKey = null;
-  var currentTab = 'today';
-  var calBuffer = '';    // digits typed on the calories keypad
-  var freshEntry = -1;
-
-  function num(n) { return n.toLocaleString('en-US'); }
+  var LOCALE = 'en-US';
+  // Follow the phone's 12/24-hour setting even though the text is English.
+  var HOUR12 = (function () {
+    try { var h = new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12; return h === undefined ? true : h; }
+    catch (e) { return true; }
+  })();
+  var FORMATTERS = {
+    dayLong: { weekday: 'long', month: 'long', day: 'numeric' },
+    dayShort: { weekday: 'short', month: 'short', day: 'numeric' },
+    dayYear: { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' },
+    monthYear: { month: 'long', year: 'numeric' },
+    monthDay: { month: 'short', day: 'numeric' },
+    monthDayYear: { month: 'short', day: 'numeric', year: 'numeric' },
+    weekdayNarrow: { weekday: 'narrow' },
+    // hourCycle h23 rather than hour12:false, which some engines render as "24:05" after midnight.
+    time: HOUR12 ? { hour: 'numeric', minute: '2-digit', hour12: true } : { hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }
+  };
+  // FMT.<name>(date | 'YYYY-MM-DD' | ms) → string. Each Intl formatter is created once.
+  var FMT = {};
+  Object.keys(FORMATTERS).forEach(function (name) {
+    var f = new Intl.DateTimeFormat(LOCALE, FORMATTERS[name]);
+    FMT[name] = function (d) { return f.format(typeof d === 'string' ? dateFromKey(d) : typeof d === 'number' ? new Date(d) : d); };
+  });
+  var NUM = new Intl.NumberFormat(LOCALE);
+  function num(n) { return NUM.format(n); }
+  var MIN_TS = 946684800000; // 2000-01-01: smaller numbers are flags, not times
+  function timeOf(v) { return typeof v === 'number' && isFinite(v) && v > MIN_TS ? FMT.time(v) : ''; }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
   function mod(a, b) { return ((a % b) + b) % b; }
-  function dayIndex(k) { return Math.round((dateFromKey(k) - dateFromKey(ROTATION_START)) / 86400000); }
 
-  // ---- Status of each task for one day's record
+  /* =====================================================================
+     STORE
+     localStorage is shared with the separate money/ app on this site (key 'money.v1') and its
+     ~5 MB quota. Only keys that start with 'dailyTasks.' are ever read, written or removed, and
+     localStorage.clear() is never called. Keys:
+       'dailyTasks.v1'          the data (below). Never renamed.
+       'dailyTasks.v1.prev'     the raw 'dailyTasks.v1' string as it was at the start of the day
+                                (rolling daily rollback copy)
+       'dailyTasks.v1.corrupt'  an unreadable 'dailyTasks.v1' value, kept exactly as found
+                                ('dailyTasks.v1.corrupt.<ms>' when a different one is already kept)
+       'dailyTasks.meta'        { lastBackupAt, lastRestoreAt, snapshotDay, safariNoteDismissed };
+                                never stored inside the data and never exported
+       'dailyTasks.probe'       written and removed once at startup to test that storage works
+     sessionStorage 'dt.reloadAt' guards against reload loops after an update.
+
+     Data in 'dailyTasks.v1':
+       { schema: 2, firstDay: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': {
+           pills: { finasteride: <ms when checked>|0, … },
+           calories: [ { kcal: 450, ts: <ms> }, … ],
+           workout: { type: 'A', level: 2, sets: { pushup_mid: [<ms>|0, <ms>|0], … } } } } }
+     Older saves stored a plain timestamp or `true` per task; that still counts as done.
+     Changes are additive only: existing fields are never renamed or retyped, and unknown fields
+     are kept. SCHEMA stays 2; data saved with a higher schema is opened read-only.
+     ===================================================================== */
+  var STORAGE_KEY = 'dailyTasks.v1';
+  var PREV_KEY = 'dailyTasks.v1.prev';
+  var CORRUPT_KEY = 'dailyTasks.v1.corrupt';
+  var META_KEY = 'dailyTasks.meta';
+  var PROBE_KEY = 'dailyTasks.probe';
+  var SCHEMA = 2;
+
+  var state = { schema: SCHEMA, days: {} }; // the one in-memory copy every screen reads
+  var storageMode = 'ok';  // 'ok' | 'readonly' (never write the data) | 'memory' (no storage at all)
+  var loadOk = false;      // the stored data was read cleanly this session
+  var recovered = false;   // unreadable data was replaced by the daily copy
+  var corruptRaw = null;   // the unreadable string, for “Export damaged copy”
+  var corruptText = '';
+  var writeFailed = false;
+  var lastRaw = null;      // the STORAGE_KEY string this page last read or wrote
+  var probed = false;
+
+  function isLegacyDone(v) { return v === true || (typeof v === 'number' && isFinite(v) && v > 0); }
+  function workoutDef(type) { return typeof type === 'string' && has(WORKOUTS, type) ? WORKOUTS[type] : null; }
+
+  // Parse a stored string; null unless it is an object with a plain-object `days`.
+  function parseData(raw) {
+    if (typeof raw !== 'string') return null;
+    var d;
+    try { d = JSON.parse(raw); } catch (e) { return null; }
+    return isObj(d) && isObj(d.days) ? d : null;
+  }
+
+  function clone(x) {
+    if (Array.isArray(x)) return x.map(clone);
+    if (x !== null && typeof x === 'object') {
+      var o = {};
+      Object.keys(x).forEach(function (k) {
+        var v = clone(x[k]);
+        if (k === '__proto__') Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
+        else o[k] = v;
+      });
+      return o;
+    }
+    return x;
+  }
+
+  // Pure: returns a cleaned deep copy that every screen can read without crashing.
+  // Unknown fields are kept; legacy number/true values are left as they are. Never writes.
+  function normalize(data) {
+    var out = clone(data);
+    if (!isDayKey(out.firstDay)) delete out.firstDay;
+    var days = out.days;
+    Object.keys(days).forEach(function (k) {
+      if (!isDayKey(k)) return; // kept untouched; every model loop skips it
+      if (!isObj(days[k])) { delete days[k]; return; }
+      normalizeRecord(days[k]);
+    });
+    return out;
+  }
+  function normalizeRecord(rec) {
+    if (has(rec, 'pills')) {
+      var p = rec.pills;
+      if (isObj(p)) {
+        Object.keys(p).forEach(function (k) {
+          var v = p[k];
+          if (!(typeof v === 'boolean' || (typeof v === 'number' && isFinite(v)))) p[k] = 0;
+        });
+      } else if (!(isLegacyDone(p) || p === false)) delete rec.pills;
+    }
+    if (has(rec, 'calories')) {
+      var c = rec.calories;
+      if (Array.isArray(c)) {
+        rec.calories = c.map(function (e) {
+          var ts = Number(e && e.ts);
+          return Object.assign({}, e, { kcal: Number(e && e.kcal), ts: isFinite(ts) ? ts : 0 });
+        }).filter(function (e) { return isFinite(e.kcal) && e.kcal > 0; });
+      } else if (!(isLegacyDone(c) || c === false)) delete rec.calories;
+    }
+    if (has(rec, 'workout')) {
+      var w = rec.workout;
+      if (isObj(w)) {
+        if (workoutDef(w.type)) {
+          var level = Math.max(0, Math.floor(Number(w.level)));
+          w.level = isFinite(level) ? level : 0;
+          var sets = isObj(w.sets) ? w.sets : {};
+          Object.keys(sets).forEach(function (id) {
+            var arr = Array.isArray(sets[id]) ? sets[id] : [], slots = [];
+            for (var i = 0; i < SETS; i++) {
+              var v = arr[i];
+              slots.push(typeof v === 'number' && isFinite(v) && v > 0 ? v : v === true ? 1 : 0);
+            }
+            sets[id] = slots;
+          });
+          w.sets = sets;
+        } else delete rec.workout; // never written by the app
+      } else if (!(isLegacyDone(w) || w === false)) delete rec.workout;
+    }
+  }
+
+  function useMemory() {
+    storageMode = 'memory';
+    state = { days: {} };
+    loadOk = false;
+    showBanner('unavailable');
+  }
+
+  // Fill `state` from storage. Runs at startup, on 'storage' events from other tabs and on a
+  // back/forward-cache restore. Unreadable data is quarantined, never overwritten.
+  function loadState() {
+    var raw, probeOk = true, store;
+    if (storageMode === 'memory') return; // storage never worked this session
+    loadOk = false; recovered = false;
+    storageMode = 'ok';
+    hideBanner('corrupt'); hideBanner('newer');
+    try {
+      store = window.localStorage;
+      if (!probed) {
+        probed = true;
+        try { store.setItem(PROBE_KEY, '1'); store.removeItem(PROBE_KEY); } catch (e) { probeOk = false; }
+      }
+      raw = store.getItem(STORAGE_KEY);
+    } catch (e) { useMemory(); return; }
+    // A failed probe with nothing stored means storage is off (private mode). If data exists the
+    // quota is probably full: show the data anyway and let persist() report failed writes.
+    if (!probeOk && raw === null) { useMemory(); return; }
+    hideBanner('unavailable');
+    lastRaw = raw;
+    var data;
+    if (raw === null) {
+      state = { schema: SCHEMA, days: {} };
+      loadOk = true;
+      return;
+    }
+    data = parseData(raw);
+    if (data) {
+      state = normalize(data);
+      loadOk = true;
+    } else {
+      corruptRaw = raw;
+      try {
+        var kept = store.getItem(CORRUPT_KEY);
+        store.setItem(kept === null || kept === raw ? CORRUPT_KEY : CORRUPT_KEY + '.' + Date.now(), raw);
+      } catch (e) {
+        storageMode = 'readonly'; // could not keep a copy, so never write over the original
+        showBanner('writefail');
+      }
+      var prev = null;
+      try { prev = parseData(store.getItem(PREV_KEY)); } catch (e) {}
+      if (prev) { state = normalize(prev); recovered = true; data = prev; } else state = { days: {} };
+      var day = recovered ? getMeta().snapshotDay : null;
+      corruptText = !recovered ? 'The damaged data was kept. Restore a backup to get your history back.'
+        : isDayKey(day) ? 'Recovered the copy from the start of ' + FMT.dayShort(day) + '. The damaged data was kept.'
+        : 'Recovered an earlier copy. The damaged data was kept.';
+      showBanner('corrupt');
+    }
+    if (data && Number(data.schema) > SCHEMA) {
+      storageMode = 'readonly';
+      showBanner('newer');
+    }
+  }
+
+  // Write `state`. Returns false (and says so on screen) when it could not be saved;
+  // the in-memory state stays authoritative, so the screen keeps the tap.
+  function persist() {
+    if (storageMode !== 'ok') return false;
+    state.schema = SCHEMA;
+    var text = JSON.stringify(state);
+    try { window.localStorage.setItem(STORAGE_KEY, text); }
+    catch (e) { writeFailed = true; showBanner('writefail'); return false; }
+    lastRaw = text;
+    writeFailed = false;
+    hideBanner('writefail');
+    return true;
+  }
+
+  // If another tab saved since this page last read or wrote, take its data before changing
+  // anything, so a stale page never writes over newer data. (Normally the 'storage' event
+  // has already done this; this costs one getItem and a string compare.)
+  function syncFromStorage() {
+    if (storageMode !== 'ok') return;
+    var raw;
+    try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+    if (raw !== null && raw !== lastRaw) loadState();
+  }
+
+  function getMeta() {
+    try {
+      var m = JSON.parse(window.localStorage.getItem(META_KEY));
+      return isObj(m) ? m : {};
+    } catch (e) { return {}; }
+  }
+  function setMeta(patch) {
+    try {
+      var m = getMeta();
+      Object.keys(patch).forEach(function (k) { m[k] = patch[k]; });
+      window.localStorage.setItem(META_KEY, JSON.stringify(m));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Once per day, before today's record is written, keep the stored data as the rollback copy.
+  // Never after unreadable data (that would replace the good copy with the damaged one).
+  function snapshotDaily(today) {
+    if (!loadOk || storageMode !== 'ok') return;
+    try {
+      if (getMeta().snapshotDay === today) return;
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw === null) return;
+      if (raw !== lastRaw && !parseData(raw)) return;
+      window.localStorage.setItem(PREV_KEY, raw);
+      setMeta({ snapshotDay: today });
+    } catch (e) { /* quota: skip quietly */ }
+  }
+
+  // Save text through the iOS share sheet (Save to Files, iCloud Drive…), a download, or a
+  // copyable text box. Stays synchronous up to navigator.share() so iOS keeps the user's tap.
+  // Resolves to 'shared', 'downloaded', 'cancelled' or 'fallback'.
+  function isIOS() {
+    var ua = navigator.userAgent || '';
+    return /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+  function exportFile(text, name, type) {
+    function share(t) {
+      try {
+        var f = new File([text], name, { type: t });
+        if (navigator.canShare && navigator.share && navigator.canShare({ files: [f] })) return navigator.share({ files: [f] });
+      } catch (e) {}
+      return null;
+    }
+    var p = share(type) || (type !== 'text/plain' ? share('text/plain') : null);
+    if (p) {
+      return p.then(function () { return 'shared'; }, function (err) {
+        if (err && err.name === 'AbortError') return 'cancelled';
+        showTextFallback(text);
+        return 'fallback';
+      });
+    }
+    if (!isIOS()) {
+      try {
+        var url = URL.createObjectURL(new Blob([text], { type: type }));
+        var a = document.createElement('a');
+        a.href = url; a.download = name; a.style.display = 'none';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+        return Promise.resolve('downloaded');
+      } catch (e) {}
+    }
+    showTextFallback(text);
+    return Promise.resolve('fallback');
+  }
+
+  /* =====================================================================
+     MODEL — status of each task for one day's record, plans, streaks and stats
+     Every loop over stored days skips keys that are not real day keys.
+     ===================================================================== */
   function pillStatus(rec) {
     var v = rec && rec.pills;
-    if (v && typeof v === 'object') {
+    if (isObj(v)) {
       var n = 0, last = 0;
-      PILLS.forEach(function (p) { if (v[p.id]) { n++; if (typeof v[p.id] === 'number' && v[p.id] > last) last = v[p.id]; } });
+      PILLS.forEach(function (p) {
+        var t = v[p.id];
+        if (isLegacyDone(t)) { n++; if (typeof t === 'number' && t > last) last = t; }
+      });
       return { n: n, total: PILLS.length, done: n === PILLS.length, at: n === PILLS.length ? last : 0 };
     }
-    return { n: v ? PILLS.length : 0, total: PILLS.length, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+    var done = isLegacyDone(v);
+    return { n: done ? PILLS.length : 0, total: PILLS.length, done: done, at: done && typeof v === 'number' ? v : 0, legacy: done };
   }
   function calStatus(rec) {
     var v = rec && rec.calories;
     if (Array.isArray(v)) {
       var total = 0, at = 0;
-      v.forEach(function (e) { total += e.kcal; if (!at && total >= CAL_GOAL) at = e.ts; });
+      v.forEach(function (e) {
+        var k = e ? Number(e.kcal) : 0;
+        if (!(isFinite(k) && k > 0)) return;
+        total += k;
+        if (!at && total >= CAL_GOAL) at = Number(e.ts) || 0;
+      });
       return { total: total, done: total >= CAL_GOAL, at: at };
     }
-    return { total: v ? CAL_GOAL : 0, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+    var done = isLegacyDone(v);
+    return { total: done ? CAL_GOAL : 0, done: done, at: done && typeof v === 'number' ? v : 0, legacy: done };
   }
   function workoutStatus(rec) {
     var v = rec && rec.workout;
-    if (v && typeof v === 'object' && WORKOUTS[v.type]) {
-      var ex = WORKOUTS[v.type].ex, n = 0, last = 0, total = ex.length * SETS;
-      ex.forEach(function (e) {
-        var s = (v.sets && v.sets[e.id]) || [];
-        for (var i = 0; i < SETS; i++) if (s[i]) { n++; if (s[i] > last) last = s[i]; }
+    var def = isObj(v) ? workoutDef(v.type) : null;
+    if (def) {
+      var n = 0, last = 0, total = def.ex.length * SETS;
+      def.ex.forEach(function (e) {
+        var s = isObj(v.sets) && Array.isArray(v.sets[e.id]) ? v.sets[e.id] : [];
+        for (var i = 0; i < SETS; i++) if (isLegacyDone(s[i])) { n++; if (typeof s[i] === 'number' && s[i] > last) last = s[i]; }
       });
       return { n: n, total: total, done: n === total, at: n === total ? last : 0, type: v.type };
     }
-    return { n: v ? 1 : 0, total: 1, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+    var done = isLegacyDone(v);
+    return { n: done ? 1 : 0, total: 1, done: done, at: done && typeof v === 'number' ? v : 0, legacy: done };
   }
   var STATUS = { pills: pillStatus, calories: calStatus, workout: workoutStatus };
-  function isDone(id, rec) { return !!rec && STATUS[id](rec).done; }
+  function isDone(id, rec) { return isObj(rec) && STATUS[id](rec).done; }
   function score(rec) {
     var n = 0;
-    if (rec) TASKS.forEach(function (t) { if (isDone(t.id, rec)) n++; });
+    if (isObj(rec)) TASKS.forEach(function (t) { if (isDone(t.id, rec)) n++; });
     return n;
   }
   function hasProgress(id, rec) {
@@ -799,42 +1170,243 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     return (s.type ? WORKOUTS[s.type].name + ' · ' : '') + s.n + ' of ' + s.total + ' sets';
   }
 
-  // ---- Workout plan: A/B alternate by calendar day; each finished session of the same
+  // Workout plan: A/B alternate by calendar day; each finished session of the same
   // workout adds one rep (or 5 seconds of hanging) next time.
+  function dayIndex(k) { return Math.round((dateFromKey(k) - dateFromKey(ROTATION_START)) / 86400000); }
   function workoutPlan(data, key) {
     var rec = data.days[key];
-    if (rec && rec.workout && typeof rec.workout === 'object' && WORKOUTS[rec.workout.type]) return rec.workout;
+    if (isObj(rec) && isObj(rec.workout) && workoutDef(rec.workout.type)) return rec.workout;
     var type = mod(dayIndex(key), 2) === 0 ? 'A' : 'B';
     var level = 0;
     Object.keys(data.days).forEach(function (k) {
-      if (k >= key) return;
-      var w = data.days[k].workout;
-      if (w && typeof w === 'object' && w.type === type && workoutStatus(data.days[k]).done) level++;
+      if (k >= key || !isDayKey(k)) return;
+      var r = data.days[k];
+      if (!isObj(r)) return;
+      var w = r.workout;
+      if (isObj(w) && w.type === type && workoutStatus(r).done) level++;
     });
     return { type: type, level: level, sets: {} };
   }
   function target(ex, level) { return ex.unit === 'sec' ? HANG_START + level * HANG_STEP : REPS_START + level * REPS_STEP; }
   function targetText(ex, level) { return ex.unit === 'sec' ? target(ex, level) + ' sec' : target(ex, level) + ' reps'; }
+  function emptySets() { var a = []; for (var i = 0; i < SETS; i++) a.push(0); return a; }
 
-  // Make sure today's record has a workout plan (and convert an old one-tap check into full detail).
-  function ensureToday(data, key) {
-    var rec = data.days[key] || {};
-    var changed = false;
-    if (!(rec.workout && typeof rec.workout === 'object' && WORKOUTS[rec.workout.type])) {
-      var legacy = rec.workout, plan = workoutPlan(data, key);
-      if (legacy) WORKOUTS[plan.type].ex.forEach(function (e) { plan.sets[e.id] = [typeof legacy === 'number' ? legacy : Date.now(), typeof legacy === 'number' ? legacy : Date.now()]; });
-      rec.workout = plan; changed = true;
+  // Make sure a day's record exists and is in the current shape before it is written:
+  // converts old one-tap values (strictly: a positive timestamp or true) into full detail,
+  // replaces junk with the empty structure, and (freeze) fixes the workout plan.
+  // Only called for a day that is about to be written; merely reading a day never changes it.
+  var dayChanged = false; // set by ensureDay: whether it modified the record
+  function ensureDay(data, key, freeze) {
+    var rec = data.days[key];
+    dayChanged = false;
+    if (!isObj(rec)) { rec = {}; data.days[key] = rec; dayChanged = true; }
+    if (has(rec, 'pills') && !isObj(rec.pills)) {
+      var p = rec.pills, all = {};
+      if (isLegacyDone(p)) {
+        var at = typeof p === 'number' ? p : Date.now();
+        PILLS.forEach(function (x) { all[x.id] = at; });
+      }
+      rec.pills = all; dayChanged = true;
     }
-    if (rec.pills && typeof rec.pills !== 'object') {
-      var at = typeof rec.pills === 'number' ? rec.pills : Date.now(), all = {};
-      PILLS.forEach(function (p) { all[p.id] = at; });
-      rec.pills = all; changed = true;
+    if (has(rec, 'calories') && !Array.isArray(rec.calories)) {
+      var c = rec.calories;
+      rec.calories = isLegacyDone(c) ? [{ kcal: CAL_GOAL, ts: typeof c === 'number' ? c : Date.now() }] : [];
+      dayChanged = true;
     }
-    if (rec.calories && !Array.isArray(rec.calories)) {
-      rec.calories = [{ kcal: CAL_GOAL, ts: typeof rec.calories === 'number' ? rec.calories : Date.now() }]; changed = true;
+    var w = rec.workout;
+    if (!(isObj(w) && workoutDef(w.type)) && (freeze || isLegacyDone(w))) {
+      var plan = workoutPlan(data, key);
+      if (isLegacyDone(w)) {
+        var t = typeof w === 'number' ? w : Date.now();
+        WORKOUTS[plan.type].ex.forEach(function (e) {
+          var s = []; for (var i = 0; i < SETS; i++) s.push(t);
+          plan.sets[e.id] = s;
+        });
+      }
+      rec.workout = plan; dayChanged = true;
     }
-    if (changed) { data.days[key] = rec; save(data); }
     return rec;
+  }
+  // Today's plan is frozen the first time today is shown.
+  function ensureToday(data, today) { return ensureDay(data, today, true); }
+
+  // First day counted in stats: firstDay, but never more than RANGE days back.
+  function trackStart(data, today) {
+    var rangeStart = addDays(today, -(RANGE - 1));
+    var first = isDayKey(data.firstDay) ? dateFromKey(data.firstDay) : today;
+    return first > rangeStart ? first : rangeStart;
+  }
+  // Perfect days ending today, or ending yesterday if today is still in progress.
+  function currentStreak(data, todayKey) {
+    var today = dateFromKey(todayKey), start = trackStart(data, today);
+    var c = score(data.days[todayKey]) === TASKS.length ? today : addDays(today, -1);
+    var n = 0;
+    while (c >= start && score(data.days[keyFor(c)]) === TASKS.length) { n++; c = addDays(c, -1); }
+    return n;
+  }
+
+  // Stats over the last 365 days (from the first day you used the app).
+  function stats(data, now) {
+    var today = startOfDay(now);
+    var start = trackStart(data, today);
+    var perfect = 0, best = 0, run = 0, days = 0;
+    var perTask = {};
+    TASKS.forEach(function (t) { perTask[t.id] = 0; });
+    for (var d = start; d <= today; d = addDays(d, 1)) {
+      var rec = data.days[keyFor(d)];
+      var n = score(rec);
+      var isToday = d.getTime() === today.getTime();
+      if (n === TASKS.length) { perfect++; run++; if (run > best) best = run; }
+      else if (!isToday) run = 0;
+      // Today only counts toward rates once it's finished, so the morning doesn't drag them down.
+      if (!isToday || n === TASKS.length) {
+        days++;
+        TASKS.forEach(function (t) { if (isDone(t.id, rec)) perTask[t.id]++; });
+      }
+    }
+    return { perfect: perfect, best: best, current: currentStreak(data, keyFor(today)), days: days, perTask: perTask };
+  }
+
+  /* =====================================================================
+     VIEW
+     Every value put into innerHTML is a number (Number()/num()), a formatted date or time
+     (FMT/timeOf) or a constant (PILLS, WORKOUTS, TASKS). Strings from stored data never are.
+     ===================================================================== */
+  var viewKey = null;      // the day currently rendered as "today"
+  var editKey = null;      // a past day being edited (always null in this version)
+  function shownKey() { return editKey || viewKey; }
+  var viewMonth = null;    // first day of the month shown in the calendar
+  var selectedKey = null;
+  var currentTab = 'today';
+  var historyDirty = true; // the history section needs a render before it is shown
+  var calBuffer = '';      // digits typed on the calories keypad
+  var freshEntry = -1;
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-icon]'), function (el) { el.innerHTML = icon(el.getAttribute('data-icon')); });
+
+  // ---- Reduce Motion, read live
+  var motionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduceMotion = !!(motionMq && motionMq.matches);
+  if (motionMq) {
+    var onMotion = function () { reduceMotion = motionMq.matches; };
+    if (motionMq.addEventListener) motionMq.addEventListener('change', onMotion);
+    else if (motionMq.addListener) motionMq.addListener(onMotion);
+  }
+  function pop(el) {
+    if (reduceMotion || !el) return;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  }
+  // One listener ends every pop, so the class can never get stuck.
+  function endPop(e) {
+    var el = e.target && e.target.closest ? e.target.closest('.pop') : null;
+    if (!el) return;
+    // A cancel caused by restarting the pop arrives after the new animation began: keep that one.
+    if (e.type === 'animationcancel' && e.target.getAnimations && e.target.getAnimations().length) return;
+    el.classList.remove('pop');
+  }
+  document.addEventListener('animationend', endPop);
+  document.addEventListener('animationcancel', endPop);
+
+  // ---- System banner (storage and display problems), above every tab
+  var BANNERS = {
+    unavailable: { level: 'error', title: 'Storage is unavailable. Nothing will be saved.', actions: [] },
+    corrupt: { level: 'error', title: "Your saved data couldn't be read.", body: function () { return corruptText; },
+      actions: [['Export damaged copy', function () { exportFile(corruptRaw || '', 'daily-tasks-damaged-' + keyFor(new Date()) + '.txt', 'text/plain'); }],
+        ['Dismiss', function () { hideBanner('corrupt'); }]] },
+    newer: { level: 'warn', title: 'Saved by a newer version of Daily Tasks.', actions: [['Update', function () { updateAndReload(); }]] },
+    writefail: { level: 'error', title: "Couldn't save on this iPhone. Changes will be lost when the app closes.",
+      actions: [['Back up now', function () { exportFile(JSON.stringify(state), 'daily-tasks-' + keyFor(new Date()) + '.json', 'application/json'); }]] },
+    error: { level: 'error', title: 'Something went wrong showing this screen. Your data is safe.', actions: [['Export data', exportData]] },
+    fallback: { level: 'warn', title: 'Copy this text into Notes or a file to keep it.', textarea: true,
+      actions: [['Copy', copyFallback], ['Dismiss', function () { hideBanner('fallback'); }]] }
+  };
+  var BANNER_ORDER = ['unavailable', 'corrupt', 'newer', 'writefail', 'error', 'fallback'];
+  var activeBanners = {};
+  var fallbackText = '';
+  function showBanner(id) { activeBanners[id] = true; drawBanners(); }
+  function hideBanner(id) { if (activeBanners[id]) { delete activeBanners[id]; drawBanners(); } }
+  function drawBanners() {
+    var box = $('sysBanner');
+    box.textContent = '';
+    var any = false;
+    BANNER_ORDER.forEach(function (id) {
+      if (!activeBanners[id]) return;
+      any = true;
+      var b = BANNERS[id];
+      var el = document.createElement('div');
+      el.className = 'card banner' + (b.level === 'warn' ? ' warn' : '');
+      el.setAttribute('data-banner', id);
+      var title = document.createElement('p');
+      title.className = 'banner-title';
+      title.textContent = b.title;
+      el.appendChild(title);
+      if (b.body) {
+        var body = document.createElement('p');
+        body.className = 'banner-body';
+        body.textContent = b.body();
+        el.appendChild(body);
+      }
+      if (b.textarea) {
+        var ta = document.createElement('textarea');
+        ta.readOnly = true; ta.rows = 6; ta.spellcheck = false;
+        ta.setAttribute('aria-label', 'Backup text');
+        ta.value = fallbackText;
+        el.appendChild(ta);
+      }
+      if (b.actions.length) {
+        var row = document.createElement('div');
+        row.className = 'banner-actions';
+        b.actions.forEach(function (a, i) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = a[0];
+          btn.setAttribute('data-act', String(i));
+          row.appendChild(btn);
+        });
+        el.appendChild(row);
+      }
+      box.appendChild(el);
+    });
+    box.hidden = !any;
+  }
+  // Runs synchronously inside the tap, so share and clipboard calls keep the user's gesture.
+  $('sysBanner').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    var el = btn && btn.closest('[data-banner]');
+    if (!el) return;
+    var a = BANNERS[el.getAttribute('data-banner')].actions[+btn.getAttribute('data-act')];
+    if (a) a[1]();
+  });
+  function showTextFallback(text) {
+    fallbackText = text;
+    showBanner('fallback');
+    window.scrollTo(0, 0);
+  }
+  function copyFallback() {
+    var ta = document.querySelector('[data-banner="fallback"] textarea');
+    var done = function () { toast('Copied'); };
+    var manual = function () { if (ta) { ta.focus(); ta.select(); } };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(fallbackText).then(done, manual);
+      else manual();
+    } catch (e) { manual(); }
+  }
+  function exportData() {
+    var text = null;
+    if (loadOk && !writeFailed && storageMode !== 'memory') {
+      try { text = window.localStorage.getItem(STORAGE_KEY); } catch (e) {}
+    }
+    if (text === null) text = JSON.stringify(state);
+    exportFile(text, 'daily-tasks-' + keyFor(new Date()) + '.json', 'application/json');
+  }
+
+  // Run one part of the screen; if it throws, keep the app usable and say the data is safe.
+  var renderErrors = {};
+  function guard(part, fn) {
+    try { fn(); delete renderErrors[part]; }
+    catch (e) { console.error(e); renderErrors[part] = true; }
+    if (Object.keys(renderErrors).length) { if (!activeBanners.error) showBanner('error'); }
+    else hideBanner('error');
   }
 
   // ---- Task cards (built once)
@@ -849,10 +1421,9 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     btn.innerHTML =
       tile(t) +
       '<span class="task-text"><span class="task-name">' + t.name + '</span><span class="task-sub"></span></span>' +
-      '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
+      '<span class="check" aria-hidden="true">' + CHECK_SVG + '</span>' +
       '<span class="chev" aria-hidden="true">' + icon('chevron') + '</span>';
     btn.addEventListener('click', function () { showTab(t.id); });
-    btn.addEventListener('animationend', function (e) { if (e.animationName === 'pop') btn.classList.remove('pop'); });
     li.appendChild(btn);
     $('tasks').appendChild(li);
     taskEls[t.id] = btn;
@@ -869,118 +1440,26 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     btn.innerHTML =
       '<span class="tile" style="--accent: var(--violet)" aria-hidden="true">' + icon('pill') + '</span>' +
       '<span class="task-text"><span class="task-name">' + p.name + '</span><span class="task-sub"></span></span>' +
-      '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+      '<span class="check" aria-hidden="true">' + CHECK_SVG + '</span>';
     btn.addEventListener('click', function () {
       change(function (rec) {
-        rec.pills = rec.pills && typeof rec.pills === 'object' ? rec.pills : {};
-        rec.pills[p.id] = rec.pills[p.id] ? 0 : Date.now();
+        if (!isObj(rec.pills)) rec.pills = {};
+        rec.pills[p.id] = isLegacyDone(rec.pills[p.id]) ? 0 : Date.now();
         if (rec.pills[p.id]) pop(btn);
       });
     });
-    btn.addEventListener('animationend', function (e) { if (e.animationName === 'pop') btn.classList.remove('pop'); });
     li.appendChild(btn);
     $('pillList').appendChild(li);
     pillEls[p.id] = btn;
   });
 
-  function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-
-  // Apply a change to today's record, then re-render and celebrate anything newly approved.
-  function change(fn) {
-    // If midnight passed while the app was open, switch to the new day first
-    // instead of changing a day that is no longer today.
-    if (keyFor(new Date()) !== viewKey) { render(); return; }
-    var data = load();
-    var rec = ensureToday(data, viewKey);
-    var was = {};
-    TASKS.forEach(function (t) { was[t.id] = isDone(t.id, rec); });
-    var before = score(rec);
-    fn(rec, data);
-    data.days[viewKey] = rec;
-    save(data);
-    render();
-    var newly = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
-    if (before < TASKS.length && score(rec) === TASKS.length) { confetti(); toast('All 3 done for today!'); }
-    else if (newly.length) toast(newly[0].name.split(' ')[0] + ' approved');
-  }
-
   var toastTimer;
-  function toast(text) {
+  function toast(text, opts) {
     $('toastText').textContent = text;
     $('toast').classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { $('toast').classList.remove('show'); }, 2600);
+    toastTimer = setTimeout(function () { $('toast').classList.remove('show'); }, (opts && opts.duration) || 2600);
   }
-
-  // ---- Tabs
-  function showTab(name) {
-    if (name === currentTab) { window.scrollTo(0, 0); return; }
-    currentTab = name;
-    ['today', 'pills', 'calories', 'workout'].forEach(function (v) {
-      var el = $('view-' + v);
-      el.hidden = v !== name;
-      if (v === name && !reduceMotion) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
-      var on = b.getAttribute('data-tab') === name;
-      b.classList.toggle('on', on);
-      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-    });
-    window.scrollTo(0, 0);
-  }
-  $('tabbar').addEventListener('click', function (e) {
-    var b = e.target.closest('.tab');
-    if (b) showTab(b.getAttribute('data-tab'));
-  });
-
-  // ---- Calories keypad
-  function setBuffer(v) {
-    calBuffer = v;
-    var n = parseInt(calBuffer || '0', 10);
-    $('calInput').textContent = num(n);
-    $('calDisplay').classList.toggle('empty', !n);
-    $('calAdd').disabled = !n;
-  }
-  $('keys').addEventListener('click', function (e) {
-    var k = e.target.closest('.key');
-    if (!k) return;
-    var v = k.getAttribute('data-key');
-    if (v === 'C') setBuffer('');
-    else if (v === 'back') setBuffer(calBuffer.slice(0, -1));
-    else if (calBuffer.length < 4 && !(calBuffer === '' && v === '0')) setBuffer(calBuffer + v);
-  });
-  function addCalories(n) {
-    if (!n) return;
-    change(function (rec) {
-      rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
-      rec.calories.push({ kcal: n, ts: Date.now() });
-      freshEntry = rec.calories.length - 1;
-    });
-  }
-  $('calAdd').addEventListener('click', function () { var n = parseInt(calBuffer || '0', 10); setBuffer(''); addCalories(n); });
-  $('quick').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-quick]');
-    if (b) addCalories(parseInt(b.getAttribute('data-quick'), 10));
-  });
-  $('entriesBox').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-del]');
-    if (!b) return;
-    var i = parseInt(b.getAttribute('data-del'), 10);
-    change(function (rec) { if (Array.isArray(rec.calories)) rec.calories.splice(i, 1); });
-  });
-
-  // ---- Workout sets
-  $('exList').addEventListener('click', function (e) {
-    var b = e.target.closest('.set');
-    if (!b) return;
-    var id = b.getAttribute('data-ex'), i = parseInt(b.getAttribute('data-set'), 10);
-    change(function (rec) {
-      var s = rec.workout.sets[id] = rec.workout.sets[id] || [0, 0];
-      s[i] = s[i] ? 0 : Date.now();
-    });
-    var again = document.querySelector('.set[data-ex="' + id + '"][data-set="' + i + '"]');
-    if (again && again.getAttribute('aria-pressed') === 'true') pop(again);
-  });
 
   function renderPills(rec) {
     var s = pillStatus(rec);
@@ -989,12 +1468,14 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     $('pillsBar').style.width = (s.n / s.total * 100) + '%';
     $('pillsChip').innerHTML = s.done ? icon('check') + 'Approved' : (s.total - s.n) + ' left';
     $('pillsState').textContent = s.done ? 'All pills taken' + (timeOf(s.at) ? ' · done at ' + timeOf(s.at) : '') : 'Tap each pill once you take it.';
-    var v = rec.pills && typeof rec.pills === 'object' ? rec.pills : {};
+    var v = isObj(rec.pills) ? rec.pills : null;
+    var all = !v && s.done; // an old one-tap "pills taken" day
     PILLS.forEach(function (p) {
-      var on = !!v[p.id], el = pillEls[p.id];
+      var at = v ? v[p.id] : all ? rec.pills : 0;
+      var on = isLegacyDone(at), el = pillEls[p.id];
       el.setAttribute('aria-pressed', on ? 'true' : 'false');
       el.setAttribute('aria-label', p.name + (on ? ', taken' : ', not taken'));
-      el.querySelector('.task-sub').textContent = on ? (timeOf(v[p.id]) ? 'Taken at ' + timeOf(v[p.id]) : 'Taken') : 'Not taken yet';
+      el.querySelector('.task-sub').textContent = on ? (timeOf(at) ? 'Taken at ' + timeOf(at) : 'Taken') : 'Not taken yet';
     });
   }
 
@@ -1008,34 +1489,39 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     $('calState').textContent = s.done
       ? 'Goal reached' + (timeOf(s.at) ? ' at ' + timeOf(s.at) : '') + (s.total > CAL_GOAL ? ' · ' + num(s.total - CAL_GOAL) + ' over' : '')
       : num(CAL_GOAL - s.total) + ' kcal to go';
-    var list = Array.isArray(rec.calories) ? rec.calories : [];
-    $('entriesTitle').textContent = list.length ? 'Today · ' + plural(list.length, 'entry').replace('entrys', 'entries') : 'Today';
-    if (!list.length) { $('entriesBox').innerHTML = '<p class="empty-note">Type an amount and tap Add, or use a quick button.</p>'; return; }
+    var list = Array.isArray(rec.calories) ? rec.calories.filter(function (e) { var k = e ? Number(e.kcal) : 0; return isFinite(k) && k > 0; }) : [];
+    $('entriesTitle').textContent = list.length ? 'Today · ' + plural(list.length, 'entry', 'entries') : 'Today';
+    if (!list.length) { $('entriesBox').innerHTML = '<p class="empty-note">Type an amount and tap Add, or use a quick button.</p>'; freshEntry = -1; return; }
     var html = '<ul class="card entries">';
     for (var i = list.length - 1; i >= 0; i--) {
-      html += '<li class="entry' + (i === freshEntry ? ' fresh' : '') + '"><span class="t">' + (timeOf(list[i].ts) || '') + '</span>' +
-        '<span class="k num">+' + num(list[i].kcal) + ' kcal</span>' +
-        '<button type="button" data-del="' + i + '" aria-label="Remove ' + list[i].kcal + ' kcal">' + icon('x') + '</button></li>';
+      var kcal = Number(list[i].kcal), ts = Number(list[i].ts);
+      if (!isFinite(ts)) ts = 0;
+      html += '<li class="entry' + (i === freshEntry ? ' fresh' : '') + '"><span class="t">' + timeOf(ts) + '</span>' +
+        '<span class="k num">+' + num(kcal) + ' kcal</span>' +
+        '<button type="button" data-ts="' + ts + '" data-kcal="' + kcal + '" aria-label="Remove ' + num(kcal) + ' kcal">' + icon('x') + '</button></li>';
     }
     $('entriesBox').innerHTML = html + '</ul>';
     freshEntry = -1;
   }
 
-  function renderWorkout(data, rec, today) {
-    var plan = rec.workout, w = WORKOUTS[plan.type], s = workoutStatus(rec);
+  function renderWorkout(data, rec, key) {
+    var plan = isObj(rec.workout) && workoutDef(rec.workout.type) ? rec.workout : workoutPlan(data, key);
+    var w = WORKOUTS[plan.type], s = workoutStatus({ workout: plan });
+    var sets = isObj(plan.sets) ? plan.sets : {};
+    var level = Number(plan.level) || 0;
     $('woTitle').textContent = w.name;
     $('woHero').classList.toggle('approved', s.done);
     $('woCount').innerHTML = s.n + '<small>/' + s.total + '</small>';
     $('woBar').style.width = (s.n / s.total * 100) + '%';
-    $('woChip').innerHTML = s.done ? icon('check') + 'Approved' : 'Session ' + (plan.level + 1);
+    $('woChip').innerHTML = s.done ? icon('check') + 'Approved' : 'Session ' + (level + 1);
     $('woSub').textContent = w.focus + ' · ' + SETS + ' sets each';
     var html = '';
     w.ex.forEach(function (e) {
-      var sets = plan.sets[e.id] || [];
+      var done = Array.isArray(sets[e.id]) ? sets[e.id] : [];
       var complete = true;
       var btns = '';
       for (var i = 0; i < SETS; i++) {
-        var on = !!sets[i];
+        var on = isLegacyDone(done[i]);
         if (!on) complete = false;
         btns += '<button type="button" class="set" data-ex="' + e.id + '" data-set="' + i + '" aria-pressed="' + on + '" aria-label="' + e.name + ' ' + e.variant + ', set ' + (i + 1) + (on ? ', done' : '') + '">' +
           '<span class="mc">' + icon('check') + '</span>Set ' + (i + 1) + '</button>';
@@ -1043,53 +1529,33 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       html += '<section class="card ex' + (complete ? ' complete' : '') + '">' +
         '<div class="ex-head"><span class="tile" style="--accent: var(--blue)" aria-hidden="true">' + icon(e.unit === 'sec' ? 'timer' : 'dumbbell') + '</span>' +
         '<span class="ex-text"><span class="ex-name">' + e.name + '</span><span class="ex-variant">' + e.variant + '</span></span>' +
-        '<span class="ex-target"><b class="num">' + target(e, plan.level) + '</b><span>' + (e.unit === 'sec' ? 'seconds' : 'reps') + ' × ' + SETS + '</span></span></div>' +
+        '<span class="ex-target"><b class="num">' + target(e, level) + '</b><span>' + (e.unit === 'sec' ? 'seconds' : 'reps') + ' × ' + SETS + '</span></span></div>' +
         '<div class="sets">' + btns + '</div></section>';
     });
     $('exList').innerHTML = html;
-    var tomorrow = keyFor(addDays(dateFromKey(today), 1));
+    var tomorrow = keyFor(addDays(dateFromKey(key), 1));
     var next = workoutPlan(data, tomorrow), nw = WORKOUTS[next.type];
     $('woNext').textContent = 'Tomorrow: ' + nw.name + ' · ' + nw.ex.map(function (e) { return targetText(e, next.level); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(' / ');
   }
 
-  function renderTabs(rec) {
-    TASKS.forEach(function (t) {
-      var d = document.querySelector('[data-dot="' + t.id + '"]');
-      if (d) d.classList.toggle('on', isDone(t.id, rec));
-    });
-  }
-
-  // ---- Main render
-  function render() {
-    var now = new Date();
-    var today = keyFor(now);
-    var data = load();
-    if (!data.firstDay || data.firstDay > today) { data.firstDay = today; save(data); }
-    if (viewKey !== today) {
-      // first render, or the date changed: jump back to today
-      viewKey = today;
-      selectedKey = today;
-      viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    var dateText = fmt(now, { weekday: 'long', month: 'long', day: 'numeric' });
+  // Tab dots, the dates, the Today hero and cards, and the streak chip.
+  function renderShell() {
+    var key = shownKey(), rec = state.days[key] || {};
+    var dateText = FMT.dayLong(key);
     $('date').textContent = dateText;
     Array.prototype.forEach.call(document.querySelectorAll('.date-label'), function (el) { el.textContent = dateText; });
 
-    var day = ensureToday(data, today);
-    var done = score(day);
+    var done = score(rec);
     var total = TASKS.length;
     TASKS.forEach(function (t) {
-      var st = STATUS[t.id](day);
+      var st = STATUS[t.id](rec);
       var el = taskEls[t.id];
       el.setAttribute('aria-pressed', st.done ? 'true' : 'false');
-      el.setAttribute('aria-label', t.name + (st.done ? ', approved' : ', ' + progressText(t.id, day)) + '. Open');
-      el.querySelector('.task-sub').textContent = st.done ? (timeOf(st.at) ? 'Approved at ' + timeOf(st.at) : 'Approved') : progressText(t.id, day);
+      el.setAttribute('aria-label', t.name + (st.done ? ', approved' : ', ' + progressText(t.id, rec)) + '. Open');
+      el.querySelector('.task-sub').textContent = st.done ? (timeOf(st.at) ? 'Approved at ' + timeOf(st.at) : 'Approved') : progressText(t.id, rec);
+      var d = document.querySelector('[data-dot="' + t.id + '"]');
+      if (d) d.classList.toggle('on', st.done);
     });
-    renderPills(day);
-    renderCalories(day);
-    renderWorkout(data, day, today);
-    renderTabs(day);
 
     $('count').innerHTML = done + '<small>/' + total + '</small>';
     $('countLabel').textContent = done === total ? 'all done' : 'completed';
@@ -1102,47 +1568,30 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     $('app').classList.toggle('all-done', done === total);
     $('doneNote').hidden = done !== total;
 
-    var s = stats(data, now);
+    var streak = currentStreak(state, viewKey);
     var chip = $('streakChip');
-    $('streakText').textContent = plural(s.current, 'day');
-    chip.classList.toggle('hot', s.current > 0);
-    chip.setAttribute('aria-label', 'Current streak: ' + plural(s.current, 'perfect day'));
-
-    renderStats(s);
-    renderCalendar(data, now, false);
-    renderDetail(data, now);
-    renderRates(s);
+    $('streakText').textContent = plural(streak, 'day');
+    chip.classList.toggle('hot', streak > 0);
+    chip.setAttribute('aria-label', 'Current streak: ' + plural(streak, 'perfect day'));
   }
 
-  // ---- Stats over the last 365 days (from the first day you used the app)
-  function stats(data, now) {
-    var today = startOfDay(now);
-    var rangeStart = addDays(today, -(RANGE - 1));
-    var first = dateFromKey(data.firstDay);
-    var start = first > rangeStart ? first : rangeStart;
+  // One task tab only.
+  function renderTab(name) {
+    var key = shownKey(), rec = state.days[key] || {};
+    if (name === 'pills') renderPills(rec);
+    else if (name === 'calories') renderCalories(rec);
+    else if (name === 'workout') renderWorkout(state, rec, key);
+  }
 
-    var perfect = 0, best = 0, run = 0, days = 0;
-    var perTask = {};
-    TASKS.forEach(function (t) { perTask[t.id] = 0; });
-    for (var d = start; d <= today; d = addDays(d, 1)) {
-      var rec = data.days[keyFor(d)];
-      var n = score(rec);
-      var isToday = d.getTime() === today.getTime();
-      if (n === TASKS.length) { perfect++; run++; if (run > best) best = run; }
-      else if (!isToday) run = 0;
-      // Today only counts toward rates once it's finished, so the morning doesn't drag them down.
-      if (!isToday || n === TASKS.length) {
-        days++;
-        TASKS.forEach(function (t) { if (isDone(t.id, rec)) perTask[t.id]++; });
-      }
-    }
-
-    // Current streak: perfect days ending today, or ending yesterday if today is still in progress.
-    var current = 0;
-    var c = score(data.days[keyFor(today)]) === TASKS.length ? today : addDays(today, -1);
-    while (c >= start && score(data.days[keyFor(c)]) === TASKS.length) { current++; c = addDays(c, -1); }
-
-    return { perfect: perfect, best: best, current: current, days: days, perTask: perTask };
+  // Stats, calendar, the selected day and completion rates.
+  function viewDate() { return dateFromKey(viewKey); }
+  function renderHistory() {
+    var now = viewDate();
+    var s = stats(state, now);
+    renderStats(s);
+    renderCalendar(state, now, false);
+    renderDetail(state, now);
+    renderRates(s);
   }
 
   function renderStats(s) {
@@ -1178,7 +1627,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   (function buildWeekdays() {
     var base = new Date(2026, 0, 4); // a Sunday
     var html = '';
-    for (var i = 0; i < 7; i++) html += '<span>' + fmt(addDays(base, i), { weekday: 'narrow' }) + '</span>';
+    for (var i = 0; i < 7; i++) html += '<span>' + FMT.weekdayNarrow(addDays(base, i)) + '</span>';
     $('weekdays').innerHTML = html;
   })();
 
@@ -1190,13 +1639,12 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   function renderCalendar(data, now, animateDir) {
     var today = startOfDay(now);
     var rangeStart = addDays(today, -(RANGE - 1));
-    var first = dateFromKey(data.firstDay);
-    var trackedFrom = first > rangeStart ? first : rangeStart;
+    var trackedFrom = trackStart(data, today);
     var y = viewMonth.getFullYear(), m = viewMonth.getMonth();
     var daysIn = new Date(y, m + 1, 0).getDate();
     var offset = new Date(y, m, 1).getDay();
 
-    $('calTitle').textContent = fmt(viewMonth, { month: 'long', year: 'numeric' });
+    $('calTitle').textContent = FMT.monthYear(viewMonth);
     $('prevMonth').disabled = viewMonth <= minMonth(now);
     $('nextMonth').disabled = y === now.getFullYear() && m === now.getMonth();
 
@@ -1218,7 +1666,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
         cell.classList.add('tracked');
         if (n) cell.classList.add('l' + n);
         cell.dataset.key = k;
-        cell.setAttribute('aria-label', fmt(d, { weekday: 'long', month: 'long', day: 'numeric' }) + ': ' + (tracked || n ? n + ' of ' + TASKS.length + ' completed' : 'not tracked'));
+        cell.setAttribute('aria-label', FMT.dayLong(d) + ': ' + (tracked || n ? n + ' of ' + TASKS.length + ' completed' : 'not tracked'));
         if (k === selectedKey) { cell.classList.add('selected'); cell.setAttribute('aria-current', 'date'); }
       } else {
         cell.disabled = true;
@@ -1236,42 +1684,13 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     }
   }
 
-  $('grid').addEventListener('click', function (e) {
-    var cell = e.target.closest('.cell');
-    if (!cell || !cell.dataset.key) return;
-    selectedKey = cell.dataset.key;
-    var data = load(), now = new Date();
-    renderCalendar(data, now, false);
-    renderDetail(data, now);
-  });
-
-  function shiftMonth(dir) {
-    var now = new Date();
-    var next = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + dir, 1);
-    if (next < minMonth(now) || next > new Date(now.getFullYear(), now.getMonth(), 1)) return;
-    viewMonth = next;
-    renderCalendar(load(), now, dir);
-  }
-  $('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
-  $('nextMonth').addEventListener('click', function () { shiftMonth(1); });
-
-  // Swipe left/right on the calendar to change month.
-  var touchX = null, touchY = null;
-  $('grid').addEventListener('touchstart', function (e) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; }, { passive: true });
-  $('grid').addEventListener('touchend', function (e) {
-    if (touchX === null) return;
-    var dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
-    touchX = null;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
-  });
-
   function renderDetail(data, now) {
     var d = dateFromKey(selectedKey);
     var today = startOfDay(now);
     var diff = Math.round((today - d) / 86400000);
-    var title = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : fmt(d, { weekday: 'long', month: 'long', day: 'numeric' });
-    if (diff > 1 && d.getFullYear() !== today.getFullYear()) title = fmt(d, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
-    var rec = data.days[selectedKey] || {};
+    var title = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : FMT.dayLong(d);
+    if (diff > 1 && d.getFullYear() !== today.getFullYear()) title = FMT.dayYear(d);
+    var rec = isObj(data.days[selectedKey]) ? data.days[selectedKey] : {};
     var n = score(rec);
     var tracked = selectedKey >= data.firstDay || n > 0;
 
@@ -1334,33 +1753,298 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     requestAnimationFrame(frame);
   }
 
-  // ---- Keep "today" correct: re-check at midnight, when the app comes back
-  // to the foreground, and once a minute as a safety net.
+  /* =====================================================================
+     CONTROLLER
+     ===================================================================== */
+
+  // Main render: handles a new day, prepares today's record, then draws what is visible.
+  function render() {
+    var now = new Date();
+    var today = keyFor(now);
+    if (viewKey !== today) {
+      // first render, or the date changed: keep the start-of-day copy, then jump to today
+      snapshotDaily(today);
+      viewKey = today;
+      selectedKey = today;
+      viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    var dirty = false;
+    guard('prepare', function () {
+      dirty = repairFirstDay(today);
+      ensureToday(state, today);
+      if (dayChanged) dirty = true;
+    });
+    if (dirty) persist();
+    guard('shell', renderShell);
+    if (currentTab !== 'today') guard('tab', function () { renderTab(currentTab); });
+    if (currentTab === 'today') { guard('history', renderHistory); historyDirty = false; }
+    else historyDirty = true;
+  }
+
+  // firstDay must be a real day no later than today: otherwise use the earliest stored day.
+  function repairFirstDay(today) {
+    var f = state.firstDay;
+    if (isDayKey(f) && f <= today) return false;
+    var first = null;
+    Object.keys(state.days).forEach(function (k) {
+      if (isDayKey(k) && k <= today && isObj(state.days[k]) && (first === null || k < first)) first = k;
+    });
+    state.firstDay = first || today;
+    return true;
+  }
+
+  // Apply a change to one day's record (the day on screen unless opts.key says otherwise),
+  // save, re-render and celebrate anything newly approved. Returns whether it was applied.
+  function change(fn, opts) {
+    syncFromStorage();
+    var targetKey = (opts && opts.key) || shownKey();
+    var nowKey = keyFor(new Date());
+    var stale = false;
+    if (editKey === null && targetKey !== nowKey) {
+      // Midnight passed while this screen was showing.
+      if (targetKey === keyFor(addDays(dateFromKey(nowKey), -1))) stale = true; // the tap was meant for yesterday
+      else { render(); toast('New day started — tap again'); return false; }
+    }
+    var rec = ensureDay(state, targetKey, true);
+    var was = {};
+    TASKS.forEach(function (t) { was[t.id] = isDone(t.id, rec); });
+    var before = score(rec);
+    fn(rec, state);
+    persist();
+    render();
+    if (stale) toast('Saved to ' + FMT.dayShort(targetKey) + ' · New day started');
+    else if (targetKey === nowKey && before < TASKS.length && score(rec) === TASKS.length) { confetti(); toast('All 3 done for today!'); }
+    else {
+      var newly = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
+      if (newly.length) toast(newly[0].name.split(' ')[0] + ' approved');
+    }
+    return true;
+  }
+
+  // ---- Tabs
+  function showTab(name) {
+    if (name === currentTab) { window.scrollTo(0, 0); return; }
+    currentTab = name;
+    if (name !== 'today') guard('tab', function () { renderTab(name); });
+    else if (historyDirty) { guard('history', renderHistory); historyDirty = false; }
+    VIEWS.forEach(function (v) {
+      var el = $('view-' + v);
+      if (v !== name) {
+        Array.prototype.forEach.call(el.querySelectorAll('.pop'), function (x) { x.classList.remove('pop'); });
+        el.hidden = true;
+      } else {
+        el.hidden = false;
+        if (!reduceMotion) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+      }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+      var on = b.getAttribute('data-tab') === name;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
+  }
+  $('tabbar').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab');
+    if (b) showTab(b.getAttribute('data-tab'));
+  });
+
+  // ---- Calories keypad
+  function setBuffer(v) {
+    calBuffer = v;
+    var n = parseInt(calBuffer || '0', 10);
+    $('calInput').textContent = num(n);
+    $('calDisplay').classList.toggle('empty', !n);
+    $('calAdd').disabled = !n;
+  }
+  $('keys').addEventListener('click', function (e) {
+    var k = e.target.closest('.key');
+    if (!k) return;
+    var v = k.getAttribute('data-key');
+    if (v === 'C') setBuffer('');
+    else if (v === 'back') setBuffer(calBuffer.slice(0, -1));
+    else if (calBuffer.length < 4 && !(calBuffer === '' && v === '0')) setBuffer(calBuffer + v);
+  });
+  function addCalories(n) {
+    if (!n) return false;
+    return change(function (rec) {
+      rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
+      rec.calories.push({ kcal: n, ts: Date.now() });
+      freshEntry = rec.calories.length - 1;
+    });
+  }
+  // The typed amount is cleared only once it has really been added.
+  $('calAdd').addEventListener('click', function () {
+    var n = parseInt(calBuffer || '0', 10);
+    if (addCalories(n)) setBuffer('');
+  });
+  $('quick').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-quick]');
+    if (b) addCalories(parseInt(b.getAttribute('data-quick'), 10));
+  });
+  // Delete by identity (time + amount), so a stale list can never remove a different entry.
+  $('entriesBox').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ts]');
+    if (!b) return;
+    var ts = Number(b.getAttribute('data-ts')), kcal = Number(b.getAttribute('data-kcal'));
+    change(function (rec) {
+      if (!Array.isArray(rec.calories)) return;
+      for (var i = 0; i < rec.calories.length; i++) {
+        var en = rec.calories[i];
+        if (en && (Number(en.ts) || 0) === ts && Number(en.kcal) === kcal) { rec.calories.splice(i, 1); return; }
+      }
+    });
+  });
+
+  // ---- Workout sets
+  $('exList').addEventListener('click', function (e) {
+    var b = e.target.closest('.set');
+    if (!b) return;
+    var id = b.getAttribute('data-ex'), i = parseInt(b.getAttribute('data-set'), 10);
+    if (!(i >= 0 && i < SETS)) return;
+    var ok = change(function (rec) {
+      var def = isObj(rec.workout) ? workoutDef(rec.workout.type) : null;
+      if (!def || !def.ex.some(function (x) { return x.id === id; })) return; // not in this day's workout
+      if (!isObj(rec.workout.sets)) rec.workout.sets = {};
+      var s = rec.workout.sets[id] = Array.isArray(rec.workout.sets[id]) ? rec.workout.sets[id] : emptySets();
+      s[i] = isLegacyDone(s[i]) ? 0 : Date.now();
+    });
+    if (!ok) return;
+    var again = $('exList').querySelector('.set[data-ex="' + id + '"][data-set="' + i + '"]');
+    if (again && again.getAttribute('aria-pressed') === 'true') pop(again);
+  });
+
+  // ---- History: pick a day, change month
+  $('grid').addEventListener('click', function (e) {
+    var cell = e.target.closest('.cell');
+    if (!cell || !cell.dataset.key) return;
+    selectedKey = cell.dataset.key;
+    guard('history', function () {
+      var now = viewDate();
+      renderCalendar(state, now, false);
+      renderDetail(state, now);
+    });
+  });
+
+  function shiftMonth(dir) {
+    var now = viewDate();
+    var next = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + dir, 1);
+    if (next < minMonth(now) || next > new Date(now.getFullYear(), now.getMonth(), 1)) return;
+    viewMonth = next;
+    guard('history', function () { renderCalendar(state, now, dir); });
+  }
+  $('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
+  $('nextMonth').addEventListener('click', function () { shiftMonth(1); });
+
+  // Swipe left/right on the calendar to change month.
+  var touchX = null, touchY = null;
+  $('grid').addEventListener('touchstart', function (e) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; }, { passive: true });
+  $('grid').addEventListener('touchend', function (e) {
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
+    touchX = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
+  });
+
+  // ---- Keep "today" correct: re-check at midnight, when the app comes back to the
+  // foreground, and once a minute as a safety net. The typed calorie amount is kept.
   var midnightTimer;
   function scheduleMidnight() {
     clearTimeout(midnightTimer);
     var now = new Date();
-    midnightTimer = setTimeout(function () { render(); scheduleMidnight(); }, addDays(now, 1) - now + 1000);
+    midnightTimer = setTimeout(refreshIfNewDay, addDays(now, 1) - now + 1000);
   }
-  function refreshIfNewDay() {
-    if (keyFor(new Date()) !== viewKey) render();
+  function refreshIfNewDay(force) {
+    var newDay = viewKey !== null && keyFor(new Date()) !== viewKey;
+    if (newDay || force === true) render();
+    if (newDay) toast('New day · ' + FMT.dayLong(viewKey));
     scheduleMidnight();
   }
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshIfNewDay(); });
   window.addEventListener('focus', refreshIfNewDay);
-  window.addEventListener('pageshow', refreshIfNewDay);
-  window.addEventListener('storage', function (e) { if (e.key === STORAGE_KEY) render(); });
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && storageMode !== 'memory') { loadState(); refreshIfNewDay(true); }
+    else refreshIfNewDay();
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key === STORAGE_KEY && storageMode !== 'memory') { loadState(); render(); }
+  });
   setInterval(refreshIfNewDay, 60 * 1000);
 
+  /* =====================================================================
+     BOOT
+     Updates: sw.js installs a new version in the background and takes over at once; the page
+     reloads into it only when nobody is using the screen, otherwise it says "Update ready".
+     ===================================================================== */
+  var hasSW = 'serviceWorker' in navigator && location.protocol !== 'file:';
+  var reg = null;
+  var hadController = hasSW && !!navigator.serviceWorker.controller;
+  var updateReady = false;
+  var touchedSinceVisible = false;
+  var lastUpdateCheck = Date.now();
+
+  function isIdle() {
+    return calBuffer === '' && editKey === null && !document.querySelector('dialog[open]');
+  }
+  function reloadOnce() {
+    var now = Date.now(), last = 0;
+    try { last = Number(sessionStorage.getItem('dt.reloadAt')) || 0; } catch (e) {}
+    if (last && now - last >= 0 && now - last < 10000) return; // never loop
+    try { sessionStorage.setItem('dt.reloadAt', String(now)); } catch (e) {}
+    location.reload();
+  }
+  function checkForUpdate() {
+    lastUpdateCheck = Date.now();
+    if (reg) reg.update().catch(noop);
+  }
+  function updateAndReload() {
+    if (!reg) { reloadOnce(); return; }
+    var done = false;
+    var go = function () {
+      if (done) return;
+      done = true;
+      navigator.serviceWorker.removeEventListener('controllerchange', go);
+      reloadOnce();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', go);
+    setTimeout(go, 4000);
+    try { reg.update().catch(noop); } catch (e) {}
+  }
+
+  var markTouched = function () { touchedSinceVisible = true; };
+  document.addEventListener('pointerdown', markTouched, true);
+  document.addEventListener('keydown', markTouched, true);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    touchedSinceVisible = false;
+    refreshIfNewDay();
+    if (updateReady && isIdle()) { reloadOnce(); return; }
+    if (Date.now() - lastUpdateCheck >= 60 * 1000) checkForUpdate();
+  });
+
+  if (hasSW) {
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController) { hadController = true; return; } // first install: nothing to reload
+      updateReady = true;
+      if (isIdle() && !touchedSinceVisible) reloadOnce();
+      else toast('Update ready', { duration: 8000 });
+    });
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function (r) { reg = r; }).catch(noop);
+    });
+    setTimeout(checkForUpdate, 10 * 1000);
+  }
+
+  // ---- Start
+  loadState();
   render();
   scheduleMidnight();
 
-  if (navigator.storage && navigator.storage.persist) { navigator.storage.persist().catch(function () {}); }
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
-    });
-  }
+  // Ask the browser not to evict this site's storage (no UI either way).
+  try {
+    if (navigator.storage && navigator.storage.persisted && navigator.storage.persist) {
+      navigator.storage.persisted().then(function (p) { return p || navigator.storage.persist(); }).catch(noop);
+    }
+  } catch (e) {}
 })();
 </script>
 </body>
