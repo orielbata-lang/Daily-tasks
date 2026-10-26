@@ -2,7 +2,11 @@
 
 A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calories Eaten 🍽️** and **Workout Done 💪**.
 
-- Tap a task to check it, tap again to uncheck.
+- Four tabs: **Today**, **Pills**, **Calories**, **Workout**. A task is approved automatically when its tab is complete:
+  - **Pills**: all six checked (Finasteride, Iron, Omega 3, Vitamin D3, Hair pills, Magnesium).
+  - **Calories**: add amounts with the keypad or quick buttons until the day reaches 3,500 kcal.
+  - **Workout**: Workout A and B alternate daily, 2 sets per exercise. Reps start at 8 (dead hangs at 20 s) and go up by 1 rep (5 s) each time you finish that workout.
+- Settings live at the top of the script in `index.html` (`PILLS`, `CAL_GOAL`, `WORKOUTS`, `REPS_START`, …).
 - Progress (e.g. 2/3) and a progress bar at the top; a completion message at 3/3.
 - Each calendar day (phone's local time) is stored separately. A new day starts unchecked, even if the app stays open past midnight.
 - **History** covers the last 365 days: streaks, perfect days, a month calendar (swipe or use the arrows to go back 12 months), tap any day to see what was done and when, and per-task completion rates.

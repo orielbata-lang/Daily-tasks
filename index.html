@@ -14,8 +14,9 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-/* Layout: one narrow column. Today (progress + three task cards) on top, then a year of history:
-   stats, a month calendar you can page back 12 months, the selected day, and per-task rates. */
+/* Layout: four tabs behind a bottom tab bar. Today = progress, three task cards and a year of history.
+   Pills = six checkboxes. Calories = a calculator toward 3,500 kcal. Workout = today's A/B session, set by set.
+   A task is approved only when its tab is complete. */
 :root {
   --bg: #111315;                       /* charcoal */
   --card: #1a1d20;
@@ -73,7 +74,7 @@ button:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding-block: 24px 56px;
+  padding-block: 24px calc(112px + env(safe-area-inset-bottom, 0px));
   padding-left: max(20px, env(safe-area-inset-left, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
   display: flex;
@@ -336,6 +337,170 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 #rates { display: flex; flex-direction: column; gap: 14px; }
 .muted-note { margin: 0; color: var(--muted); font-size: 14px; }
 
+/* ---------- Views & tab bar ---------- */
+.view { display: flex; flex-direction: column; gap: 20px; }
+.view.enter { animation: viewIn .32s var(--ease); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  padding-block: 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(10px, env(safe-area-inset-left, 0px));
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+  background: rgba(17, 19, 21, .84);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border-top: 1px solid var(--line);
+}
+.tabbar-inner { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tab {
+  position: relative;
+  min-height: 54px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border: 0; border-radius: 14px; background: none;
+  color: var(--faint);
+  font-size: 11px; font-weight: 600; letter-spacing: .01em;
+  cursor: pointer;
+  transition: color .2s var(--ease), transform .15s var(--ease);
+}
+.tab:active { transform: scale(.92); }
+.tab .ic { width: 24px; height: 24px; }
+.tab.on { color: var(--fg); }
+.tab.on .ic { color: var(--tab-accent, var(--green)); }
+.tab .dot {
+  position: absolute; top: 5px; left: calc(50% + 9px);
+  width: 14px; height: 14px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--green); color: var(--green-ink);
+  box-shadow: 0 0 0 2px #15181a;
+  transform: scale(0);
+  transition: transform .35s var(--spring);
+}
+.tab .dot .ic { width: 9px; height: 9px; stroke-width: 4; color: var(--green-ink); }
+.tab .dot.on { transform: scale(1); }
+
+/* Shared pieces for the task tabs */
+.tab-hero { --accent: var(--green); }
+.big-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.big-line .big { font-size: 46px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+.big-line .big small { font-size: 22px; color: var(--muted); font-weight: 600; margin-left: 2px; }
+.big-line .unit { color: var(--muted); font-size: 15px; }
+.bar { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .5s var(--ease), background .3s var(--ease); }
+.approved .bar i { background: linear-gradient(90deg, #22b866, var(--green) 60%, #5fe39a); box-shadow: 0 0 12px rgba(50, 210, 122, .6); }
+.approved.hero { border-color: var(--green-a2); }
+.state { margin: 0; font-size: 15px; color: var(--muted); }
+.chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 99px;
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+  background: var(--card-hi); border: 1px solid var(--line); color: var(--muted);
+}
+.chip .ic { width: 15px; height: 15px; stroke-width: 3; }
+.approved .chip { background: var(--green-a1); border-color: var(--green-a2); color: var(--green); }
+.list-title { margin: 6px 4px -8px; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.task.compact { min-height: 68px; }
+.task.compact .tile { width: 44px; height: 44px; border-radius: 14px; }
+.task.compact .tile .ic { width: 22px; height: 22px; }
+.task .chev { flex: none; color: var(--faint); }
+.task .chev .ic { width: 18px; height: 18px; }
+
+/* Calories calculator */
+.calc { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.calc-display {
+  display: flex; align-items: baseline; justify-content: flex-end; gap: 8px;
+  min-height: 78px; padding: 12px 18px;
+  border-radius: var(--r-md); background: rgba(0, 0, 0, .22); border: 1px solid var(--line);
+  overflow: hidden;
+}
+.calc-display b { font-size: 46px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+.calc-display span { color: var(--muted); font-size: 17px; font-weight: 600; }
+.calc-display.empty b { color: var(--faint); }
+.quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.quick button {
+  min-height: 44px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(246, 181, 78, .28); background: rgba(246, 181, 78, .1); color: var(--amber);
+  font: 700 15px var(--font-num);
+  transition: transform .12s var(--ease);
+}
+.quick button:active { transform: scale(.94); }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.key {
+  min-height: 58px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card-hi);
+  font: 600 24px var(--font-num);
+  display: grid; place-items: center;
+  touch-action: manipulation;
+  transition: transform .1s var(--ease), background-color .2s var(--ease);
+}
+.key:active { transform: scale(.95); background: #2b3035; }
+.key.fn { font-size: 16px; color: var(--muted); }
+.key .ic { width: 22px; height: 22px; }
+.add-btn {
+  min-height: 56px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  background: var(--amber); color: #2b1a00;
+  font-size: 17px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity .2s var(--ease), transform .15s var(--ease);
+}
+.add-btn:active { transform: scale(.98); }
+.add-btn:disabled { opacity: .35; cursor: default; transform: none; }
+.add-btn .ic { width: 20px; height: 20px; stroke-width: 2.6; }
+.entries { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+.entry { display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 18px; min-height: 56px; }
+.entry + .entry { border-top: 1px solid var(--line); }
+.entry.fresh { animation: rise .45s var(--spring); }
+.entry .t { flex: 1; color: var(--muted); font-size: 15px; }
+.entry .k { font-size: 17px; font-weight: 700; }
+.entry button { width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: var(--faint); display: grid; place-items: center; cursor: pointer; }
+.entry button:active { background: var(--card-hi); }
+.entry button .ic { width: 18px; height: 18px; }
+.empty-note { margin: 0; padding: 18px; text-align: center; color: var(--muted); font-size: 15px; border: 1px dashed var(--line); border-radius: var(--r-lg); }
+
+/* Workout */
+.ex { padding: 16px; display: flex; flex-direction: column; gap: 14px; transition: border-color .3s var(--ease); }
+.ex.complete { border-color: var(--green-a2); }
+.ex-head { display: flex; align-items: center; gap: 12px; }
+.ex-head .tile { width: 44px; height: 44px; border-radius: 14px; }
+.ex-head .tile .ic { width: 22px; height: 22px; }
+.ex-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ex-name { font-size: 17px; font-weight: 600; }
+.ex-variant { font-size: 14px; color: var(--muted); }
+.ex-target { text-align: right; display: flex; flex-direction: column; }
+.ex-target b { font-size: 24px; line-height: 1.1; font-weight: 700; }
+.ex-target span { color: var(--muted); font-size: 12px; }
+.sets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.set {
+  min-height: 54px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card-hi);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 15px; font-weight: 600;
+  touch-action: manipulation;
+  transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform .15s var(--ease);
+}
+.set:active { transform: scale(.96); }
+.set .mc { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #3e444a; display: grid; place-items: center; transition: background-color .2s var(--ease), border-color .2s var(--ease); }
+.set .mc .ic { width: 14px; height: 14px; stroke-width: 3.4; color: var(--green-ink); opacity: 0; transition: opacity .2s var(--ease); }
+.set[aria-pressed="true"] { background: var(--green-a1); border-color: var(--green-a2); color: var(--green); }
+.set[aria-pressed="true"] .mc { background: var(--green); border-color: var(--green); }
+.set[aria-pressed="true"] .mc .ic { opacity: 1; }
+.set.pop .mc { animation: pop .42s var(--spring); }
+.next-note { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
+
+.toast {
+  position: fixed; left: 50%; z-index: 40;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+  width: max-content; max-width: calc(100% - 32px);
+  padding: 11px 18px; border-radius: 99px;
+  background: #22282c; border: 1px solid var(--green-a2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  font-size: 15px; font-weight: 600;
+  transition: opacity .25s var(--ease), transform .35s var(--spring);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast .ic { width: 18px; height: 18px; color: var(--green); stroke-width: 3; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -343,6 +508,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 </head>
 <body>
 <main class="app" id="app">
+ <section class="view" id="view-today">
   <header>
     <p class="eyebrow" id="date"></p>
     <h1>Daily Tasks</h1>
@@ -406,7 +572,78 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       <div id="rates"></div>
     </div>
   </section>
+ </section>
+
+ <!-- Pills -->
+ <section class="view" id="view-pills" hidden>
+  <header><p class="eyebrow date-label"></p><h1>Pills</h1></header>
+  <section class="card hero tab-hero" id="pillsHero" style="--accent: var(--violet)">
+    <div class="hero-top">
+      <div class="big-line"><span class="big num" id="pillsCount"></span><span class="unit">taken</span></div>
+      <span class="chip" id="pillsChip"></span>
+    </div>
+    <div class="bar"><i id="pillsBar"></i></div>
+    <p class="state" id="pillsState"></p>
+  </section>
+  <ul class="tasks" id="pillList"></ul>
+ </section>
+
+ <!-- Calories -->
+ <section class="view" id="view-calories" hidden>
+  <header><p class="eyebrow date-label"></p><h1>Calories</h1></header>
+  <section class="card hero tab-hero" id="calHero" style="--accent: var(--amber)">
+    <div class="hero-top">
+      <div class="big-line"><span class="big num" id="calTotal"></span><span class="unit" id="calGoal"></span></div>
+      <span class="chip" id="calChip"></span>
+    </div>
+    <div class="bar"><i id="calBar"></i></div>
+    <p class="state" id="calState"></p>
+  </section>
+  <section class="card calc" aria-label="Add calories">
+    <div class="calc-display empty" id="calDisplay" aria-live="polite"><b class="num" id="calInput">0</b><span>kcal</span></div>
+    <div class="quick" id="quick">
+      <button type="button" data-quick="100">+100</button><button type="button" data-quick="250">+250</button>
+      <button type="button" data-quick="500">+500</button><button type="button" data-quick="1000">+1000</button>
+    </div>
+    <div class="keys" id="keys">
+      <button class="key" type="button" data-key="1">1</button><button class="key" type="button" data-key="2">2</button><button class="key" type="button" data-key="3">3</button>
+      <button class="key" type="button" data-key="4">4</button><button class="key" type="button" data-key="5">5</button><button class="key" type="button" data-key="6">6</button>
+      <button class="key" type="button" data-key="7">7</button><button class="key" type="button" data-key="8">8</button><button class="key" type="button" data-key="9">9</button>
+      <button class="key fn" type="button" data-key="C" aria-label="Clear">C</button><button class="key" type="button" data-key="0">0</button><button class="key fn" type="button" data-key="back" aria-label="Delete last digit" data-icon="backspace"></button>
+    </div>
+    <button class="add-btn" id="calAdd" type="button" disabled><span data-icon="plus"></span><span>Add calories</span></button>
+  </section>
+  <p class="list-title" id="entriesTitle">Today</p>
+  <div id="entriesBox"></div>
+ </section>
+
+ <!-- Workout -->
+ <section class="view" id="view-workout" hidden>
+  <header><p class="eyebrow date-label"></p><h1 id="woTitle">Workout</h1></header>
+  <section class="card hero tab-hero" id="woHero" style="--accent: var(--blue)">
+    <div class="hero-top">
+      <div>
+        <div class="big-line"><span class="big num" id="woCount"></span><span class="unit">sets done</span></div>
+        <p class="hero-sub" id="woSub"></p>
+      </div>
+      <span class="chip" id="woChip"></span>
+    </div>
+    <div class="bar"><i id="woBar"></i></div>
+  </section>
+  <div class="view" id="exList" style="gap: 12px"></div>
+  <p class="next-note" id="woNext"></p>
+ </section>
 </main>
+
+<nav class="tabbar" aria-label="Sections">
+  <div class="tabbar-inner" id="tabbar">
+    <button class="tab on" type="button" data-tab="today" aria-current="page"><span data-icon="home"></span>Today</button>
+    <button class="tab" type="button" data-tab="pills" style="--tab-accent: var(--violet)"><span data-icon="pill"></span>Pills<span class="dot" data-dot="pills" data-icon="check"></span></button>
+    <button class="tab" type="button" data-tab="calories" style="--tab-accent: var(--amber)"><span data-icon="utensils"></span>Calories<span class="dot" data-dot="calories" data-icon="check"></span></button>
+    <button class="tab" type="button" data-tab="workout" style="--tab-accent: var(--blue)"><span data-icon="dumbbell"></span>Workout<span class="dot" data-dot="workout" data-icon="check"></span></button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"><span data-icon="check"></span><span id="toastText"></span></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
 <script>
@@ -427,7 +664,13 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
     trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
     star: '<path d="M11.53 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.91l5.16-.75a2.12 2.12 0 0 0 1.6-1.16z"/>',
-    check: '<path d="M20 6 9 17l-5-5"/>'
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/>',
+    plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    backspace: '<path d="M21 5H9l-7 7 7 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/>',
+    chevron: '<path d="m9 18 6-6-6-6"/>',
+    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/>'
   };
   function icon(name) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
   function tile(t) { return '<span class="tile" style="--accent: ' + t.color + '" aria-hidden="true">' + icon(t.icon) + '</span>'; }
@@ -435,9 +678,39 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   var STORAGE_KEY = 'dailyTasks.v1';
   var RANGE = 365; // days of history, including today
 
+  // ---- What each task needs
+  var PILLS = [
+    { id: 'finasteride', name: 'Finasteride' },
+    { id: 'iron', name: 'Iron' },
+    { id: 'omega3', name: 'Omega 3' },
+    { id: 'd3', name: 'Vitamin D3' },
+    { id: 'hair', name: 'Hair pills' },
+    { id: 'magnesium', name: 'Magnesium' }
+  ];
+  var CAL_GOAL = 3500;
+  var SETS = 2;
+  var REPS_START = 8, REPS_STEP = 1;    // +1 rep each time that workout is completed
+  var HANG_START = 20, HANG_STEP = 5;   // dead hangs in seconds
+  var ROTATION_START = '2026-10-26';    // Workout A on this day, then B, A, B…
+  var WORKOUTS = {
+    A: { name: 'Workout A', focus: 'Push-ups & squats', ex: [
+      { id: 'pushup_mid', name: 'Push-ups', variant: 'Middle chest' },
+      { id: 'pushup_shoulder', name: 'Push-ups', variant: 'Forward shoulders' },
+      { id: 'squats', name: 'Squats', variant: 'Bodyweight' }
+    ] },
+    B: { name: 'Workout B', focus: 'Pull-ups & hangs', ex: [
+      { id: 'pullup_normal', name: 'Pull-ups', variant: 'Normal' },
+      { id: 'pullup_womens', name: 'Pull-ups', variant: "Women's" },
+      { id: 'dead_hang', name: 'Dead hangs', variant: 'Hold', unit: 'sec' }
+    ] }
+  };
+
   // ---- Storage
-  // { firstDay: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': { pills: <ms timestamp when checked> | false, ... } } }
-  // Older saves used `true` instead of a timestamp; both count as done.
+  // { firstDay: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': {
+  //     pills: { finasteride: <ms when checked>, … },
+  //     calories: [ { kcal: 450, ts: <ms> }, … ],
+  //     workout: { type: 'A', level: 2, sets: { pushup_mid: [<ms>|0, <ms>|0], … } } } } }
+  // Older saves stored a plain timestamp or `true` per task; that still counts as done.
   var memoryStore = null; // used only if localStorage is unavailable
 
   function load() {
@@ -469,11 +742,99 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   var viewKey = null;    // the day shown as "today"
   var viewMonth = null;  // first day of the month shown in the calendar
   var selectedKey = null;
+  var currentTab = 'today';
+  var calBuffer = '';    // digits typed on the calories keypad
+  var freshEntry = -1;
 
+  function num(n) { return n.toLocaleString('en-US'); }
+  function mod(a, b) { return ((a % b) + b) % b; }
+  function dayIndex(k) { return Math.round((dateFromKey(k) - dateFromKey(ROTATION_START)) / 86400000); }
+
+  // ---- Status of each task for one day's record
+  function pillStatus(rec) {
+    var v = rec && rec.pills;
+    if (v && typeof v === 'object') {
+      var n = 0, last = 0;
+      PILLS.forEach(function (p) { if (v[p.id]) { n++; if (typeof v[p.id] === 'number' && v[p.id] > last) last = v[p.id]; } });
+      return { n: n, total: PILLS.length, done: n === PILLS.length, at: n === PILLS.length ? last : 0 };
+    }
+    return { n: v ? PILLS.length : 0, total: PILLS.length, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+  }
+  function calStatus(rec) {
+    var v = rec && rec.calories;
+    if (Array.isArray(v)) {
+      var total = 0, at = 0;
+      v.forEach(function (e) { total += e.kcal; if (!at && total >= CAL_GOAL) at = e.ts; });
+      return { total: total, done: total >= CAL_GOAL, at: at };
+    }
+    return { total: v ? CAL_GOAL : 0, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+  }
+  function workoutStatus(rec) {
+    var v = rec && rec.workout;
+    if (v && typeof v === 'object' && WORKOUTS[v.type]) {
+      var ex = WORKOUTS[v.type].ex, n = 0, last = 0, total = ex.length * SETS;
+      ex.forEach(function (e) {
+        var s = (v.sets && v.sets[e.id]) || [];
+        for (var i = 0; i < SETS; i++) if (s[i]) { n++; if (s[i] > last) last = s[i]; }
+      });
+      return { n: n, total: total, done: n === total, at: n === total ? last : 0, type: v.type };
+    }
+    return { n: v ? 1 : 0, total: 1, done: !!v, at: typeof v === 'number' ? v : 0, legacy: !!v };
+  }
+  var STATUS = { pills: pillStatus, calories: calStatus, workout: workoutStatus };
+  function isDone(id, rec) { return !!rec && STATUS[id](rec).done; }
   function score(rec) {
     var n = 0;
-    if (rec) TASKS.forEach(function (t) { if (rec[t.id]) n++; });
+    if (rec) TASKS.forEach(function (t) { if (isDone(t.id, rec)) n++; });
     return n;
+  }
+  function hasProgress(id, rec) {
+    var s = STATUS[id](rec);
+    return id === 'calories' ? s.total > 0 : s.n > 0;
+  }
+  function progressText(id, rec) {
+    var s = STATUS[id](rec);
+    if (id === 'pills') return s.n + ' of ' + s.total + ' taken';
+    if (id === 'calories') return num(s.total) + ' / ' + num(CAL_GOAL) + ' kcal';
+    return (s.type ? WORKOUTS[s.type].name + ' · ' : '') + s.n + ' of ' + s.total + ' sets';
+  }
+
+  // ---- Workout plan: A/B alternate by calendar day; each finished session of the same
+  // workout adds one rep (or 5 seconds of hanging) next time.
+  function workoutPlan(data, key) {
+    var rec = data.days[key];
+    if (rec && rec.workout && typeof rec.workout === 'object' && WORKOUTS[rec.workout.type]) return rec.workout;
+    var type = mod(dayIndex(key), 2) === 0 ? 'A' : 'B';
+    var level = 0;
+    Object.keys(data.days).forEach(function (k) {
+      if (k >= key) return;
+      var w = data.days[k].workout;
+      if (w && typeof w === 'object' && w.type === type && workoutStatus(data.days[k]).done) level++;
+    });
+    return { type: type, level: level, sets: {} };
+  }
+  function target(ex, level) { return ex.unit === 'sec' ? HANG_START + level * HANG_STEP : REPS_START + level * REPS_STEP; }
+  function targetText(ex, level) { return ex.unit === 'sec' ? target(ex, level) + ' sec' : target(ex, level) + ' reps'; }
+
+  // Make sure today's record has a workout plan (and convert an old one-tap check into full detail).
+  function ensureToday(data, key) {
+    var rec = data.days[key] || {};
+    var changed = false;
+    if (!(rec.workout && typeof rec.workout === 'object' && WORKOUTS[rec.workout.type])) {
+      var legacy = rec.workout, plan = workoutPlan(data, key);
+      if (legacy) WORKOUTS[plan.type].ex.forEach(function (e) { plan.sets[e.id] = [typeof legacy === 'number' ? legacy : Date.now(), typeof legacy === 'number' ? legacy : Date.now()]; });
+      rec.workout = plan; changed = true;
+    }
+    if (rec.pills && typeof rec.pills !== 'object') {
+      var at = typeof rec.pills === 'number' ? rec.pills : Date.now(), all = {};
+      PILLS.forEach(function (p) { all[p.id] = at; });
+      rec.pills = all; changed = true;
+    }
+    if (rec.calories && !Array.isArray(rec.calories)) {
+      rec.calories = [{ kcal: CAL_GOAL, ts: typeof rec.calories === 'number' ? rec.calories : Date.now() }]; changed = true;
+    }
+    if (changed) { data.days[key] = rec; save(data); }
+    return rec;
   }
 
   // ---- Task cards (built once)
@@ -488,27 +849,214 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     btn.innerHTML =
       tile(t) +
       '<span class="task-text"><span class="task-name">' + t.name + '</span><span class="task-sub"></span></span>' +
-      '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
-    btn.addEventListener('click', function () { toggle(t.id, btn); });
+      '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
+      '<span class="chev" aria-hidden="true">' + icon('chevron') + '</span>';
+    btn.addEventListener('click', function () { showTab(t.id); });
     btn.addEventListener('animationend', function (e) { if (e.animationName === 'pop') btn.classList.remove('pop'); });
     li.appendChild(btn);
     $('tasks').appendChild(li);
     taskEls[t.id] = btn;
   });
 
-  function toggle(id, btn) {
+  // ---- Pill rows (built once)
+  var pillEls = {};
+  PILLS.forEach(function (p) {
+    var li = document.createElement('li');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'task compact';
+    btn.id = 'pill-' + p.id;
+    btn.innerHTML =
+      '<span class="tile" style="--accent: var(--violet)" aria-hidden="true">' + icon('pill') + '</span>' +
+      '<span class="task-text"><span class="task-name">' + p.name + '</span><span class="task-sub"></span></span>' +
+      '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+    btn.addEventListener('click', function () {
+      change(function (rec) {
+        rec.pills = rec.pills && typeof rec.pills === 'object' ? rec.pills : {};
+        rec.pills[p.id] = rec.pills[p.id] ? 0 : Date.now();
+        if (rec.pills[p.id]) pop(btn);
+      });
+    });
+    btn.addEventListener('animationend', function (e) { if (e.animationName === 'pop') btn.classList.remove('pop'); });
+    li.appendChild(btn);
+    $('pillList').appendChild(li);
+    pillEls[p.id] = btn;
+  });
+
+  function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+  // Apply a change to today's record, then re-render and celebrate anything newly approved.
+  function change(fn) {
     // If midnight passed while the app was open, switch to the new day first
     // instead of changing a day that is no longer today.
     if (keyFor(new Date()) !== viewKey) { render(); return; }
     var data = load();
-    var day = data.days[viewKey] || {};
-    var before = score(day);
-    day[id] = day[id] ? false : Date.now();
-    data.days[viewKey] = day;
+    var rec = ensureToday(data, viewKey);
+    var was = {};
+    TASKS.forEach(function (t) { was[t.id] = isDone(t.id, rec); });
+    var before = score(rec);
+    fn(rec, data);
+    data.days[viewKey] = rec;
     save(data);
-    if (day[id]) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
     render();
-    if (before < TASKS.length && score(day) === TASKS.length) confetti();
+    var newly = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
+    if (before < TASKS.length && score(rec) === TASKS.length) { confetti(); toast('All 3 done for today!'); }
+    else if (newly.length) toast(newly[0].name.split(' ')[0] + ' approved');
+  }
+
+  var toastTimer;
+  function toast(text) {
+    $('toastText').textContent = text;
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { $('toast').classList.remove('show'); }, 2600);
+  }
+
+  // ---- Tabs
+  function showTab(name) {
+    if (name === currentTab) { window.scrollTo(0, 0); return; }
+    currentTab = name;
+    ['today', 'pills', 'calories', 'workout'].forEach(function (v) {
+      var el = $('view-' + v);
+      el.hidden = v !== name;
+      if (v === name && !reduceMotion) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+      var on = b.getAttribute('data-tab') === name;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
+  }
+  $('tabbar').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab');
+    if (b) showTab(b.getAttribute('data-tab'));
+  });
+
+  // ---- Calories keypad
+  function setBuffer(v) {
+    calBuffer = v;
+    var n = parseInt(calBuffer || '0', 10);
+    $('calInput').textContent = num(n);
+    $('calDisplay').classList.toggle('empty', !n);
+    $('calAdd').disabled = !n;
+  }
+  $('keys').addEventListener('click', function (e) {
+    var k = e.target.closest('.key');
+    if (!k) return;
+    var v = k.getAttribute('data-key');
+    if (v === 'C') setBuffer('');
+    else if (v === 'back') setBuffer(calBuffer.slice(0, -1));
+    else if (calBuffer.length < 4 && !(calBuffer === '' && v === '0')) setBuffer(calBuffer + v);
+  });
+  function addCalories(n) {
+    if (!n) return;
+    change(function (rec) {
+      rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
+      rec.calories.push({ kcal: n, ts: Date.now() });
+      freshEntry = rec.calories.length - 1;
+    });
+  }
+  $('calAdd').addEventListener('click', function () { var n = parseInt(calBuffer || '0', 10); setBuffer(''); addCalories(n); });
+  $('quick').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-quick]');
+    if (b) addCalories(parseInt(b.getAttribute('data-quick'), 10));
+  });
+  $('entriesBox').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]');
+    if (!b) return;
+    var i = parseInt(b.getAttribute('data-del'), 10);
+    change(function (rec) { if (Array.isArray(rec.calories)) rec.calories.splice(i, 1); });
+  });
+
+  // ---- Workout sets
+  $('exList').addEventListener('click', function (e) {
+    var b = e.target.closest('.set');
+    if (!b) return;
+    var id = b.getAttribute('data-ex'), i = parseInt(b.getAttribute('data-set'), 10);
+    change(function (rec) {
+      var s = rec.workout.sets[id] = rec.workout.sets[id] || [0, 0];
+      s[i] = s[i] ? 0 : Date.now();
+    });
+    var again = document.querySelector('.set[data-ex="' + id + '"][data-set="' + i + '"]');
+    if (again && again.getAttribute('aria-pressed') === 'true') pop(again);
+  });
+
+  function renderPills(rec) {
+    var s = pillStatus(rec);
+    $('pillsHero').classList.toggle('approved', s.done);
+    $('pillsCount').innerHTML = s.n + '<small>/' + s.total + '</small>';
+    $('pillsBar').style.width = (s.n / s.total * 100) + '%';
+    $('pillsChip').innerHTML = s.done ? icon('check') + 'Approved' : (s.total - s.n) + ' left';
+    $('pillsState').textContent = s.done ? 'All pills taken' + (timeOf(s.at) ? ' · done at ' + timeOf(s.at) : '') : 'Tap each pill once you take it.';
+    var v = rec.pills && typeof rec.pills === 'object' ? rec.pills : {};
+    PILLS.forEach(function (p) {
+      var on = !!v[p.id], el = pillEls[p.id];
+      el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      el.setAttribute('aria-label', p.name + (on ? ', taken' : ', not taken'));
+      el.querySelector('.task-sub').textContent = on ? (timeOf(v[p.id]) ? 'Taken at ' + timeOf(v[p.id]) : 'Taken') : 'Not taken yet';
+    });
+  }
+
+  function renderCalories(rec) {
+    var s = calStatus(rec);
+    $('calHero').classList.toggle('approved', s.done);
+    $('calTotal').textContent = num(s.total);
+    $('calGoal').textContent = '/ ' + num(CAL_GOAL) + ' kcal';
+    $('calBar').style.width = Math.min(100, s.total / CAL_GOAL * 100) + '%';
+    $('calChip').innerHTML = s.done ? icon('check') + 'Approved' : Math.round(Math.min(1, s.total / CAL_GOAL) * 100) + '%';
+    $('calState').textContent = s.done
+      ? 'Goal reached' + (timeOf(s.at) ? ' at ' + timeOf(s.at) : '') + (s.total > CAL_GOAL ? ' · ' + num(s.total - CAL_GOAL) + ' over' : '')
+      : num(CAL_GOAL - s.total) + ' kcal to go';
+    var list = Array.isArray(rec.calories) ? rec.calories : [];
+    $('entriesTitle').textContent = list.length ? 'Today · ' + plural(list.length, 'entry').replace('entrys', 'entries') : 'Today';
+    if (!list.length) { $('entriesBox').innerHTML = '<p class="empty-note">Type an amount and tap Add, or use a quick button.</p>'; return; }
+    var html = '<ul class="card entries">';
+    for (var i = list.length - 1; i >= 0; i--) {
+      html += '<li class="entry' + (i === freshEntry ? ' fresh' : '') + '"><span class="t">' + (timeOf(list[i].ts) || '') + '</span>' +
+        '<span class="k num">+' + num(list[i].kcal) + ' kcal</span>' +
+        '<button type="button" data-del="' + i + '" aria-label="Remove ' + list[i].kcal + ' kcal">' + icon('x') + '</button></li>';
+    }
+    $('entriesBox').innerHTML = html + '</ul>';
+    freshEntry = -1;
+  }
+
+  function renderWorkout(data, rec, today) {
+    var plan = rec.workout, w = WORKOUTS[plan.type], s = workoutStatus(rec);
+    $('woTitle').textContent = w.name;
+    $('woHero').classList.toggle('approved', s.done);
+    $('woCount').innerHTML = s.n + '<small>/' + s.total + '</small>';
+    $('woBar').style.width = (s.n / s.total * 100) + '%';
+    $('woChip').innerHTML = s.done ? icon('check') + 'Approved' : 'Session ' + (plan.level + 1);
+    $('woSub').textContent = w.focus + ' · ' + SETS + ' sets each';
+    var html = '';
+    w.ex.forEach(function (e) {
+      var sets = plan.sets[e.id] || [];
+      var complete = true;
+      var btns = '';
+      for (var i = 0; i < SETS; i++) {
+        var on = !!sets[i];
+        if (!on) complete = false;
+        btns += '<button type="button" class="set" data-ex="' + e.id + '" data-set="' + i + '" aria-pressed="' + on + '" aria-label="' + e.name + ' ' + e.variant + ', set ' + (i + 1) + (on ? ', done' : '') + '">' +
+          '<span class="mc">' + icon('check') + '</span>Set ' + (i + 1) + '</button>';
+      }
+      html += '<section class="card ex' + (complete ? ' complete' : '') + '">' +
+        '<div class="ex-head"><span class="tile" style="--accent: var(--blue)" aria-hidden="true">' + icon(e.unit === 'sec' ? 'timer' : 'dumbbell') + '</span>' +
+        '<span class="ex-text"><span class="ex-name">' + e.name + '</span><span class="ex-variant">' + e.variant + '</span></span>' +
+        '<span class="ex-target"><b class="num">' + target(e, plan.level) + '</b><span>' + (e.unit === 'sec' ? 'seconds' : 'reps') + ' × ' + SETS + '</span></span></div>' +
+        '<div class="sets">' + btns + '</div></section>';
+    });
+    $('exList').innerHTML = html;
+    var tomorrow = keyFor(addDays(dateFromKey(today), 1));
+    var next = workoutPlan(data, tomorrow), nw = WORKOUTS[next.type];
+    $('woNext').textContent = 'Tomorrow: ' + nw.name + ' · ' + nw.ex.map(function (e) { return targetText(e, next.level); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(' / ');
+  }
+
+  function renderTabs(rec) {
+    TASKS.forEach(function (t) {
+      var d = document.querySelector('[data-dot="' + t.id + '"]');
+      if (d) d.classList.toggle('on', isDone(t.id, rec));
+    });
   }
 
   // ---- Main render
@@ -524,18 +1072,24 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    $('date').textContent = fmt(now, { weekday: 'long', month: 'long', day: 'numeric' });
+    var dateText = fmt(now, { weekday: 'long', month: 'long', day: 'numeric' });
+    $('date').textContent = dateText;
+    Array.prototype.forEach.call(document.querySelectorAll('.date-label'), function (el) { el.textContent = dateText; });
 
-    var day = data.days[today] || {};
+    var day = ensureToday(data, today);
     var done = score(day);
     var total = TASKS.length;
     TASKS.forEach(function (t) {
-      var v = day[t.id];
+      var st = STATUS[t.id](day);
       var el = taskEls[t.id];
-      el.setAttribute('aria-pressed', v ? 'true' : 'false');
-      el.setAttribute('aria-label', t.name + (v ? ', completed' : ', not completed'));
-      el.querySelector('.task-sub').textContent = v ? (timeOf(v) ? 'Done at ' + timeOf(v) : 'Done') : t.sub;
+      el.setAttribute('aria-pressed', st.done ? 'true' : 'false');
+      el.setAttribute('aria-label', t.name + (st.done ? ', approved' : ', ' + progressText(t.id, day)) + '. Open');
+      el.querySelector('.task-sub').textContent = st.done ? (timeOf(st.at) ? 'Approved at ' + timeOf(st.at) : 'Approved') : progressText(t.id, day);
     });
+    renderPills(day);
+    renderCalories(day);
+    renderWorkout(data, day, today);
+    renderTabs(day);
 
     $('count').innerHTML = done + '<small>/' + total + '</small>';
     $('countLabel').textContent = done === total ? 'all done' : 'completed';
@@ -579,7 +1133,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       // Today only counts toward rates once it's finished, so the morning doesn't drag them down.
       if (!isToday || n === TASKS.length) {
         days++;
-        TASKS.forEach(function (t) { if (rec && rec[t.id]) perTask[t.id]++; });
+        TASKS.forEach(function (t) { if (isDone(t.id, rec)) perTask[t.id]++; });
       }
     }
 
@@ -728,10 +1282,12 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 
     var rows = '';
     TASKS.forEach(function (t) {
-      var v = rec[t.id];
-      var status = v ? (timeOf(v) ? '✓ ' + timeOf(v) : '✓ Done') : (tracked ? (diff === 0 ? 'Not yet' : 'Missed') : '—');
-      rows += '<li class="' + (v ? '' : 'off') + '">' + tile(t) +
-        '<span class="n">' + t.name + '</span><span class="s' + (v ? ' ok' : '') + '">' + status + '</span></li>';
+      var st = STATUS[t.id](rec);
+      var status = st.done ? (timeOf(st.at) ? '✓ ' + timeOf(st.at) : '✓ Done')
+        : hasProgress(t.id, rec) ? progressText(t.id, rec)
+        : (tracked ? (diff === 0 ? 'Not yet' : 'Missed') : '—');
+      rows += '<li class="' + (st.done ? '' : 'off') + '">' + tile(t) +
+        '<span class="n">' + t.name + '</span><span class="s' + (st.done ? ' ok' : '') + '">' + status + '</span></li>';
     });
     $('detailRows').innerHTML = rows;
   }
