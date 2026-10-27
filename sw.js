@@ -3,7 +3,7 @@
 // Bump VERSION when you change any file, together with APP_VERSION in index.html; they must
 // match ('daily-tasks-vN' and 'vN'). A new VERSION installs fresh copies, takes over at once,
 // and the open page reloads into it when it is idle.
-var VERSION = 'daily-tasks-v9';
+var VERSION = 'daily-tasks-v10';
 var FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 function noop() {}

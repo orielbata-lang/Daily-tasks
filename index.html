@@ -259,6 +259,8 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   color: var(--green); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
 }
 .reminder button:active { background: var(--card-hi); }
+/* 'Finish yesterday' (mornings): one line under the hero */
+.finish .reminder-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- Today's progress ---------- */
 .hero {
@@ -391,14 +393,6 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   stroke-dashoffset: 24;
   transition: stroke-dashoffset .32s var(--ease) .06s;
 }
-/* Pill rows (toggle buttons) */
-.task[aria-pressed="true"] { background: linear-gradient(180deg, rgba(50, 210, 122, .07), rgba(50, 210, 122, .03)), var(--card); border-color: var(--green-a2); }
-.task[aria-pressed="true"] .task-name { color: rgba(244, 245, 246, .72); }
-.task[aria-pressed="true"] .task-sub { color: var(--green); }
-.task[aria-pressed="true"] .check { background: var(--green); border-color: var(--green); }
-.task[aria-pressed="true"] .check path { stroke-dashoffset: 0; }
-.task[aria-pressed="true"]:active { background-color: var(--card-press); }
-.task.pop .check { animation: pop .42s var(--spring); }
 .task.pop .check::after { animation: ripple .6s var(--ease); }
 /* Today cards (links to their tab): a progress ring in the task's accent. Approved turns the arc
    green and draws a solid green disc and check on top. */
@@ -574,6 +568,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .detail-rows .s .ic { display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; stroke-width: 3; }
 .detail-rows .s.ok { color: var(--green); font-weight: 600; }
 .detail-rows li.off .tile { filter: grayscale(1); opacity: .4; }
+.edit-day {
+  align-self: flex-start;
+  min-height: 44px; margin: -6px 0 -4px -8px; padding: 0 8px;
+  border: 0; border-radius: var(--r-md); background: none; cursor: pointer;
+  color: var(--green); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
+}
+.edit-day:active { background: var(--card-hi); }
 /* a new day's rows crossfade with the old ones (an aria-hidden copy fading out on top) */
 .detail-rows.xin { animation: fadeIn .2s var(--ease); }
 .detail-rows.xout { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; animation: fadeOut .2s var(--ease) forwards; }
@@ -597,7 +598,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 #sysBanner:not([hidden]) { padding-top: var(--sp-4); }
 .view { display: flex; flex-direction: column; gap: 20px; }
 #view-today { padding-top: var(--sp-4); }
-#view-pills, #view-calories, #view-workout { padding-top: var(--sp-4); } /* 8px once the task tabs fit one screen (batch 5) */
+/* The task tabs fit one screen: no date line, 8px under the status bar, 14px between parts. */
+#view-pills, #view-calories, #view-workout { padding-top: var(--sp-2); gap: 14px; }
 /* Tab switch: an opacity-only fade, never a movement */
 .view.enter { animation: viewIn 160ms var(--ease); }
 @keyframes viewIn { from { opacity: 0; } to { opacity: 1; } }
@@ -650,17 +652,36 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
    Icon buttons and tabs dim; keys, quick buttons and sets shrink at once. */
 .tab:active, .icon-btn:enabled:active, .data-btn:active, .sn-x:active, .entry button:active, .sheet-back:active { opacity: .6; }
 
-/* Shared pieces for the task tabs */
-.tab-hero { --accent: var(--green); }
-.big-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.big-line .big { font-size: var(--fs-display); line-height: 46px; font-weight: 700; letter-spacing: -.02em; }
-.big-line .big small { font-size: var(--fs-title2); color: var(--label-2); font-weight: 600; margin-left: 2px; letter-spacing: -.02em; }
-.big-line .unit { color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
-.bar { height: 10px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width var(--dur-4) var(--ease), background .3s var(--ease); }
+/* ---------- Task tabs: one shared hero, sized so each tab fits one screen ----------
+   Row 1: the big number with its suffix and unit, and the chip ('N left' or 'Approved').
+   Row 2: the 8px bar. Row 3: the state row, a fixed 44px so nothing jumps when it changes. */
+.tab-hero { --accent: var(--green); gap: var(--sp-3); }
+.tab-hero .hero-top { align-items: center; }
+.big-line { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.big-line .big { flex: none; font-size: var(--fs-display); line-height: 46px; font-weight: 700; letter-spacing: -.02em; }
+.big-line .big small { font-size: var(--fs-title2); line-height: 1; color: var(--label-2); font-weight: 600; margin-left: 2px; letter-spacing: -.02em; } /* line-height 1: the suffix never grows the 46px row */
+/* The unit takes the rest of the row (its width never depends on its text), and fitSub shows the
+   longest form that fits on one line ('/ 3,500 kcal', then '/ 3,500'). */
+.big-line .unit { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+.bar { position: relative; height: 8px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); overflow: hidden; }
+.bar i { position: relative; z-index: 1; display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width var(--dur-4) var(--ease), background .3s var(--ease); }
 .approved .bar i { background: linear-gradient(90deg, #22b866, var(--green) 60%, #5fe39a); box-shadow: 0 0 12px rgba(50, 210, 122, .6); }
+/* Calories: the typed amount as an amber ghost from the current total to the projected one */
+.bar .ghost {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 0;
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  background: var(--amber); opacity: .35;
+  transition: width 250ms var(--ease), left var(--dur-4) var(--ease);
+}
+.bar .ghost::before { content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 6px; background: inherit; } /* fills the notch under the fill's rounded end */
 .approved.hero { border-color: var(--green-a2); }
-.state { margin: 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); }
+.state {
+  margin: 0; min-height: 44px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px;
+  text-wrap: balance;
+}
+.state:focus { outline: none; }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: var(--r-pill);
@@ -669,23 +690,69 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 }
 .chip .ic { width: 15px; height: 15px; stroke-width: 3; }
 .approved .chip { background: var(--green-a1); border-color: var(--green-a2); color: var(--green); }
-.task.compact { min-height: 68px; padding-block: 14px; }
-.task.compact .tile { width: 44px; height: 44px; border-radius: var(--r-md); }
-.task.compact .tile .ic { width: 22px; height: 22px; }
 .task .chev { flex: none; color: var(--label-2); }
 .task .chev .ic { width: 14px; height: 14px; }
-
-/* Calories calculator */
-.calc { padding: 12px; display: flex; flex-direction: column; gap: var(--sp-2); }
-.calc-display {
-  display: flex; align-items: baseline; justify-content: flex-end; gap: 8px;
-  min-height: 78px; padding: 12px 16px;
-  border-radius: var(--r-md); background: rgba(0, 0, 0, .22); border: 1px solid var(--line);
-  overflow: hidden;
+/* A tinted button in the task's accent (Mark remaining, Start hang, Log set) */
+.tint-btn {
+  --tint: var(--violet);
+  min-height: 44px; padding: 0 16px 0 12px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent); border-radius: 12px;
+  background: color-mix(in srgb, var(--tint) 14%, transparent);
+  color: var(--tint);
+  font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
+  cursor: pointer;
+  transition: transform 80ms var(--ease), opacity var(--dur-2) var(--ease);
 }
-.calc-display b { font-size: var(--fs-display); line-height: 46px; font-weight: 700; letter-spacing: -.02em; }
-.calc-display span { color: var(--label-2); font-size: var(--fs-headline); line-height: 22px; font-weight: 600; }
-.calc-display.empty b { color: var(--label-2); }
+.tint-btn:active { transform: scale(.97); }
+.tint-btn .ic { width: 18px; height: 18px; stroke-width: 2.6; }
+/* Editing a past day: under the h1 of each task tab */
+.edit-banner { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 4px 0 12px; border-radius: var(--r-md); background: var(--card-hi); }
+.eb-ic { flex: none; display: grid; color: var(--label-2); }
+.eb-ic .ic { width: 18px; height: 18px; }
+.eb-text { flex: 1; min-width: 0; font-size: var(--fs-subhead); line-height: 20px; font-weight: 600; color: var(--label-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-done {
+  flex: none; min-height: 44px; padding: 0 12px;
+  border: 0; border-radius: var(--r-md); background: none; cursor: pointer;
+  color: var(--green); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
+  transition: opacity var(--dur-1) var(--ease);
+}
+.eb-done:active { opacity: .6; }
+
+/* Pills: one inset-grouped checklist */
+#pillList > .card { padding: 0; overflow: hidden; }
+.checklist { list-style: none; margin: 0; }
+.checklist li { position: relative; }
+.checklist li + li::before { content: ""; position: absolute; z-index: 1; top: 0; left: 58px; right: 0; border-top: .5px solid rgba(255, 255, 255, .08); pointer-events: none; }
+.prow {
+  width: 100%; min-height: 56px; margin: 0; padding: 0 16px;
+  display: flex; align-items: center; gap: 14px;
+  border: 0; background: none; text-align: left; cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease);
+}
+.prow:active { background-color: rgba(255, 255, 255, .04); transition-duration: var(--dur-1); }
+.pcheck {
+  position: relative; flex: none;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--violet) 55%, transparent);
+  display: grid; place-items: center;
+  transition: background-color .25s var(--ease), border-color .25s var(--ease);
+}
+.pcheck::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--green); opacity: 0; pointer-events: none; }
+.pcheck .ck { width: 16px; height: 16px; }
+.pcheck .ck path { fill: none; stroke: var(--green-ink); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .32s var(--ease) .06s; }
+.prow[aria-pressed="true"] .pcheck { background: var(--green); border-color: var(--green); }
+.prow[aria-pressed="true"] .pcheck path { stroke-dashoffset: 0; }
+.prow.pop .pcheck { animation: pop .42s var(--spring); }
+.prow.pop .pcheck::after { animation: ripple .6s var(--ease); }
+.pname { flex: 1; min-width: 0; font-size: var(--fs-body); line-height: 22px; font-weight: 500; color: var(--label-1); }
+.ptime { flex: none; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; font-variant-numeric: tabular-nums; }
+
+/* Calories: the typed amount previews in the hero; a compact calculator */
+.calc { padding: 12px; display: flex; flex-direction: column; gap: var(--sp-2); }
+.pv { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.pv-amt { flex: none; color: var(--amber); font: 700 var(--fs-key)/28px var(--font-num); font-variant-numeric: tabular-nums; }
+.pv-to { min-width: 0; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
 .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); }
 .quick button {
   min-height: 44px; border-radius: 12px; cursor: pointer;
@@ -697,7 +764,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 }
 .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
 .key {
-  min-height: 58px; border-radius: var(--r-md); cursor: pointer;
+  min-height: 52px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--card-hi);
   font: 600 var(--fs-key)/28px var(--font-num);
   display: grid; place-items: center;
@@ -708,20 +775,29 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .key .ic { width: 22px; height: 22px; }
 .quick button:active, .key:active, .set:active { transform: scale(.96); }
 .add-btn {
-  min-height: 56px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  min-height: 52px; border: 1px solid var(--amber); border-radius: var(--r-md); cursor: pointer;
   background: var(--amber); color: var(--amber-ink);
   font-size: var(--fs-headline); line-height: 22px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: opacity var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+  transition: background-color 200ms var(--ease), border-color 200ms var(--ease), color 200ms var(--ease), transform var(--dur-1) var(--ease);
 }
 .add-btn:active { transform: scale(.98); }
-.add-btn:disabled { opacity: .35; cursor: default; transform: none; }
+/* never amber at low opacity: a quiet card-hi button until there is an amount */
+.add-btn:disabled { background: var(--card-hi); border-color: var(--line); color: var(--label-2); cursor: default; transform: none; }
+.add-btn.arm { animation: addArm .36s var(--spring); }
+@keyframes addArm { from { transform: scale(.98); } to { transform: scale(1); } }
 .add-btn .ic { width: 20px; height: 20px; stroke-width: 2.6; }
+/* compact phones (iPhone SE): the calculator gives up a little height */
+@media (max-height: 740px) {
+  .key { min-height: 46px; }
+  .quick button { min-height: 40px; }
+}
+.list-title:focus { outline: none; }
 .entries { list-style: none; margin: 0; padding: 0; overflow: hidden; }
 .entry { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 8px 6px 16px; min-height: 56px; }
 .entry + .entry { border-top: .5px solid var(--hairline); }
 .entry.fresh { animation: rise .45s var(--spring); }
-.entry .t { flex: 1; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+.entry .t { flex: 1; min-width: 0; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
 .entry .k { font-size: var(--fs-headline); line-height: 22px; font-weight: 700; }
 .entry button {
   flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none;
@@ -731,34 +807,76 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .entry button .ic { width: 18px; height: 18px; }
 .empty-note { margin: 0; padding: 16px; text-align: center; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; border: 1px dashed var(--line); border-radius: var(--r-lg); }
 
-/* Workout */
+/* Workout: numbered exercises, the next set outlined, progression on the target */
 .ex-list { display: flex; flex-direction: column; gap: var(--sp-3); }
 .ex { padding: 14px; display: flex; flex-direction: column; gap: var(--sp-3); transition: border-color .3s var(--ease); }
 .ex.complete { border-color: var(--green-a2); }
 .ex-head { display: flex; align-items: center; gap: var(--sp-3); }
-.ex-head .tile { width: 44px; height: 44px; border-radius: var(--r-md); }
-.ex-head .tile .ic { width: 22px; height: 22px; }
+/* the exercise number on a blue tile; both sets done cross-fades it into a green disc with a check */
+.ex-num { position: relative; flex: none; width: 44px; height: 44px; }
+.ex-num .face { position: absolute; inset: 0; border-radius: var(--r-md); font: 700 var(--fs-headline)/22px var(--font-num); transition: opacity 250ms var(--ease); }
+.ex-num .disc { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: var(--green); color: var(--green-ink); opacity: 0; transition: opacity 250ms var(--ease); }
+.ex-num .disc .ic { width: 22px; height: 22px; stroke-width: 3; }
+.ex.complete .ex-num .face { opacity: 0; }
+.ex.complete .ex-num .disc { opacity: 1; }
 .ex-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ex-name { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
 .ex-variant { font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); }
-.ex-target { text-align: right; display: flex; flex-direction: column; }
+.ex-target { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+.ex-target .tg { display: flex; align-items: center; gap: 6px; }
 .ex-target b { font-size: var(--fs-title1); line-height: 34px; font-weight: 700; letter-spacing: -.015em; }
-.ex-target span { color: var(--label-2); font-size: var(--fs-caption); line-height: 16px; }
+.ex-target .tg-u { color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; }
+.lvl {
+  padding: 2px 5px; border-radius: 6px;
+  background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue);
+  font-size: var(--fs-caption2); line-height: 13px; font-weight: 700; white-space: nowrap;
+}
 .sets { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-2); }
 .set {
-  min-height: 54px; border-radius: var(--r-md); cursor: pointer;
+  min-height: 52px; padding: 0 8px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--card-hi);
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
-  transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform 80ms var(--ease);
+  transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease), transform 80ms var(--ease);
 }
-.set .mc { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ring); display: grid; place-items: center; transition: background-color .2s var(--ease), border-color .2s var(--ease); }
+.set-t { white-space: nowrap; }
+.set-s { color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; font-weight: 400; }
+.set .mc { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ring); display: grid; place-items: center; transition: background-color .2s var(--ease), border-color .2s var(--ease); }
 .set .mc .ic { width: 14px; height: 14px; stroke-width: 3.4; color: var(--green-ink); opacity: 0; transition: opacity .2s var(--ease); }
+/* the first unchecked set of the workout */
+.set.next { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--blue) 60%, transparent); }
+.set.next .mc { border-color: var(--blue); }
 .set[aria-pressed="true"] { background: var(--green-a1); border-color: var(--green-a2); color: var(--green); }
+.set[aria-pressed="true"] .set-s { color: var(--green); } /* never --label-2 on a tinted fill */
 .set[aria-pressed="true"] .mc { background: var(--green); border-color: var(--green); }
 .set[aria-pressed="true"] .mc .ic { opacity: 1; }
 .set.pop .mc { animation: pop .42s var(--spring); }
-.next-note { margin: 0; text-align: center; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+/* Dead-hang hold timer */
+.hold-btn { --tint: var(--blue); width: 100%; }
+.hold-btn .ic { width: 14px; height: 14px; fill: currentColor; stroke-width: 2; }
+.hold-panel { display: flex; align-items: center; gap: var(--sp-4); }
+.hold-ring { position: relative; flex: none; width: 96px; height: 96px; display: grid; place-items: center; }
+.hold-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.hold-ring circle { fill: none; stroke-width: 6; }
+.hold-track { stroke: rgba(255, 255, 255, .09); }
+.hold-arc { stroke: var(--blue); stroke-linecap: round; stroke-dasharray: 282.74; stroke-dashoffset: 282.74; }
+.hold-arc.zero { opacity: 0; }
+.hold-num { position: relative; font: 700 var(--fs-display)/46px var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.hold-side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.hold-phase { margin: 0; font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
+.hold-sub { margin: 0; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+.hold-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: 6px; }
+.hold-log { --tint: var(--blue); padding: 0 16px; }
+.hold-stop {
+  min-height: 44px; padding: 0 18px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card-hi); cursor: pointer;
+  color: var(--label-1); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
+  transition: transform 80ms var(--ease);
+}
+.hold-stop:active { transform: scale(.97); }
+/* 'Tomorrow · Workout B: pull-ups 14 reps · hang 50 s' */
+.next-note { margin: 0; padding: 0 4px; display: flex; align-items: flex-start; gap: 8px; color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; }
+.next-note::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: var(--blue); }
 
 /* Toast: at the top, never covering a control; only its action button takes taps. */
 .toast {
@@ -987,6 +1105,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     </div>
   </section>
 
+  <div class="card reminder finish" id="finishCard" hidden>
+    <span class="reminder-text" id="finishText"></span>
+    <button type="button" id="finishBtn">Finish</button>
+  </div>
+
   <ul class="tasks" id="tasks"></ul>
 
   <div class="card reminder" id="reminder" hidden>
@@ -1022,6 +1145,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       <div class="detail" id="detail" aria-live="polite">
         <div class="detail-head"><strong id="detailTitle"></strong><span class="pill num" id="detailScore"></span></div>
         <div class="detail-body"><ul class="detail-rows" id="detailRows"></ul></div>
+        <button class="edit-day" id="editDay" type="button" hidden>Edit this day</button>
       </div>
     </div>
 
@@ -1034,34 +1158,35 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Pills -->
  <section class="view" id="view-pills" hidden>
-  <header><p class="eyebrow date-label"></p><h1>Pills</h1></header>
+  <header><h1>Pills</h1></header>
+  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="pillsHero" style="--accent: var(--violet)">
     <div class="hero-top">
-      <div class="big-line"><span class="big num" id="pillsCount"><span class="cu"></span><small></small></span><span class="unit">taken</span></div>
+      <div class="big-line"><span class="big num" id="pillsCount"><span class="cu"></span><small></small></span><span class="unit" id="pillsUnit">taken</span></div>
       <span class="chip" id="pillsChip"></span>
     </div>
     <div class="bar"><i id="pillsBar"></i></div>
-    <p class="state" id="pillsState"></p>
+    <div class="state" id="pillsState" tabindex="-1"></div>
   </section>
-  <ul class="tasks" id="pillList"></ul>
+  <div id="pillList"><ul class="card checklist" id="pillRows"></ul></div>
  </section>
 
  <!-- Calories -->
  <section class="view" id="view-calories" hidden>
-  <header><p class="eyebrow date-label"></p><h1>Calories</h1></header>
+  <header><h1>Calories</h1></header>
+  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="calHero" style="--accent: var(--amber)">
     <div class="hero-top">
       <div class="big-line"><span class="big num" id="calTotal"></span><span class="unit" id="calGoal"></span></div>
       <span class="chip" id="calChip"></span>
     </div>
-    <div class="bar"><i id="calBar"></i></div>
-    <p class="state" id="calState"></p>
+    <div class="bar"><b class="ghost" id="calGhost" aria-hidden="true"></b><i id="calBar"></i></div>
+    <div class="state" id="calState" aria-live="polite"></div>
   </section>
-  <section class="card calc" aria-label="Add calories">
-    <div class="calc-display empty" id="calDisplay" aria-live="polite"><b class="num" id="calInput">0</b><span>kcal</span></div>
+  <section class="card calc" aria-label="Calculator">
     <div class="quick" id="quick">
       <button type="button" data-quick="100">+100</button><button type="button" data-quick="250">+250</button>
-      <button type="button" data-quick="500">+500</button><button type="button" data-quick="1000">+1000</button>
+      <button type="button" data-quick="500">+500</button><button type="button" data-quick="1000">+1,000</button>
     </div>
     <div class="keys" id="keys">
       <button class="key" type="button" data-key="1">1</button><button class="key" type="button" data-key="2">2</button><button class="key" type="button" data-key="3">3</button>
@@ -1069,26 +1194,25 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       <button class="key" type="button" data-key="7">7</button><button class="key" type="button" data-key="8">8</button><button class="key" type="button" data-key="9">9</button>
       <button class="key fn" type="button" data-key="C" aria-label="Clear">C</button><button class="key" type="button" data-key="0">0</button><button class="key fn" type="button" data-key="back" aria-label="Delete last digit" data-icon="backspace"></button>
     </div>
-    <button class="add-btn" id="calAdd" type="button" disabled><span data-icon="plus"></span><span>Add calories</span></button>
+    <button class="add-btn" id="calAdd" type="button" disabled><span data-icon="plus"></span><span id="calAddLabel">Add calories</span></button>
   </section>
   <div class="group">
-    <p class="list-title" id="entriesTitle">Today</p>
-    <div id="entriesBox"></div>
+    <p class="list-title" id="entriesTitle" tabindex="-1">Today</p>
+    <div id="entriesBox"><ul class="card entries" id="entryList" hidden></ul><p class="empty-note" id="entriesEmpty">No entries yet</p></div>
   </div>
  </section>
 
  <!-- Workout -->
  <section class="view" id="view-workout" hidden>
-  <header><p class="eyebrow date-label"></p><h1 id="woTitle">Workout</h1></header>
+  <header><h1 id="woTitle">Workout</h1></header>
+  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="woHero" style="--accent: var(--blue)">
     <div class="hero-top">
-      <div>
-        <div class="big-line"><span class="big num" id="woCount"><span class="cu"></span><small></small></span><span class="unit">sets done</span></div>
-        <p class="hero-sub" id="woSub"></p>
-      </div>
+      <div class="big-line"><span class="big num" id="woCount"><span class="cu"></span><small></small></span><span class="unit" id="woUnit">sets done</span></div>
       <span class="chip" id="woChip"></span>
     </div>
     <div class="bar"><i id="woBar"></i></div>
+    <div class="state" id="woState"></div>
   </section>
   <div class="ex-list" id="exList"></div>
   <p class="next-note" id="woNext"></p>
@@ -1181,7 +1305,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('touchstart', function () {}, { passive: true });
   window.__touchListener = true;
 
-  var APP_VERSION = 'v9'; // must equal the suffix of VERSION in sw.js; bump both together
+  var APP_VERSION = 'v10'; // must equal the suffix of VERSION in sw.js; bump both together
 
   /* =====================================================================
      SETTINGS — what each task needs
@@ -1240,7 +1364,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 16.5v-5"/><path d="M12 8h.01"/>',
     alert: '<path d="M10.3 4.2 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4"/><path d="M12 17h.01"/>',
     backup: '<path d="M7 18a4.5 4.5 0 1 1 .9-8.9A6 6 0 0 1 19.5 11a3.5 3.5 0 0 1-1.5 7H7Z"/><path d="M12 16v-5"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/>',
-    share: '<path d="M8.5 9H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1.5"/><path d="M12 14V3"/><path d="m8.5 6.5 3.5-3.5 3.5 3.5"/>'
+    share: '<path d="M8.5 9H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1.5"/><path d="M12 14V3"/><path d="m8.5 6.5 3.5-3.5 3.5 3.5"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17"/><path d="M8 3v4"/><path d="M16 3v4"/>',
+    play: '<path d="M7 4.8v14.4a.8.8 0 0 0 1.2.7l11.6-7.2a.8.8 0 0 0 0-1.4L8.2 4.1A.8.8 0 0 0 7 4.8Z"/>'
   };
   // The animated check inside .check circles (task cards and pill rows). Every other check
   // mark is icon('check'); the text glyph is never used.
@@ -1286,6 +1412,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     monthDay: { month: 'short', day: 'numeric' },
     monthDayYear: { month: 'short', day: 'numeric', year: 'numeric' },
     weekdayNarrow: { weekday: 'narrow' },
+    weekdayShort: { weekday: 'short' },
     // hourCycle h23 rather than hour12:false, which some engines render as "24:05" after midnight.
     time: HOUR12 ? { hour: 'numeric', minute: '2-digit', hour12: true } : { hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }
   };
@@ -1299,6 +1426,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function num(n) { return NUM.format(n); }
   var MIN_TS = 946684800000; // 2000-01-01: smaller numbers are flags, not times
   function timeOf(v) { return typeof v === 'number' && isFinite(v) && v > MIN_TS ? FMT.time(v) : ''; }
+  var LATER = 'logged later'; // a time on another day than its record's (see whenText)
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
   function mod(a, b) { return ((a % b) + b) % b; }
 
@@ -1965,14 +2093,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
      (FMT/timeOf) or a constant (PILLS, WORKOUTS, TASKS). Strings from stored data never are.
      ===================================================================== */
   var viewKey = null;      // the day currently rendered as "today"
-  var editKey = null;      // a past day being edited (always null in this version)
+  var editKey = null;      // a past day being edited on the task tabs (see EDIT MODE), else null
+  var editMode = null;     // while editKey is set: { finishing: bool, from: tab it was entered from }
   function shownKey() { return editKey || viewKey; }
   var viewMonth = null;    // first day of the month shown in the calendar
   var selectedKey = null;
   var currentTab = 'today';
   var historyDirty = true; // the history section needs a render before it is shown
   var calBuffer = '';      // digits typed on the calories keypad
-  var freshEntry = -1;
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-icon]'), function (el) { el.innerHTML = icon(el.getAttribute('data-icon')); });
 
@@ -2133,18 +2261,18 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     c.raf = requestAnimationFrame(frame);
   }
 
-  // ---- Pill rows (built once)
-  var pillEls = {};
+  // ---- Pill rows (built once): one inset-grouped checklist. Each row is a toggle button with a
+  // check circle, the name and the time it was taken.
+  var pillEls = {}, pillTimes = {};
   PILLS.forEach(function (p) {
     var li = document.createElement('li');
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'task compact';
+    btn.className = 'prow';
     btn.id = 'pill-' + p.id;
-    btn.innerHTML =
-      '<span class="tile" style="--accent: var(--violet)" aria-hidden="true">' + icon('pill') + '</span>' +
-      '<span class="task-text"><span class="task-name">' + p.name + '</span><span class="task-sub"></span></span>' +
-      '<span class="check" aria-hidden="true">' + CHECK_SVG + '</span>';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.innerHTML = '<span class="pcheck" aria-hidden="true">' + CHECK_SVG + '</span>' +
+      '<span class="pname">' + p.name + '</span><span class="ptime"></span>';
     btn.addEventListener('click', function () {
       change(function (rec) {
         if (!isObj(rec.pills)) rec.pills = {};
@@ -2155,8 +2283,28 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       });
     });
     li.appendChild(btn);
-    $('pillList').appendChild(li);
+    $('pillRows').appendChild(li);
     pillEls[p.id] = btn;
+    pillTimes[p.id] = btn.querySelector('.ptime');
+  });
+  // 'Mark all 6 taken' / 'Mark remaining 2 taken' in the Pills hero's state row (only while not approved).
+  // Sets only the missing pills, all to the same time; a time already stored is never changed.
+  var markBtn = document.createElement('button');
+  markBtn.type = 'button';
+  markBtn.className = 'tint-btn';
+  markBtn.id = 'markPills';
+  markBtn.innerHTML = icon('check') + '<span></span>';
+  markBtn.addEventListener('click', function () {
+    change(function (rec) {
+      if (!isObj(rec.pills)) rec.pills = {};
+      var at = Date.now(), n = 0;
+      PILLS.forEach(function (p) {
+        if (isLegacyDone(rec.pills[p.id])) return;
+        rec.pills[p.id] = at; n++;
+        pop(pillEls[p.id]);
+      });
+      return n ? { text: plural(n, 'pill') + ' marked taken', undo: true } : null;
+    });
   });
 
   // ---- Toast: toast(text, { icon: 'check'|'info'|'alert', action, onAction, onHide, duration, passive })
@@ -2227,83 +2375,295 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (fn) fn();
   });
 
-  function renderPills(rec) {
+  // The hero chip: 'N left', or a check and 'Approved'. Never a percentage.
+  function setChip(el, done, text) {
+    var sig = done ? '\u0001approved' : text;
+    if (el._sig === sig) return;
+    el._sig = sig;
+    if (done) el.innerHTML = icon('check') + 'Approved';
+    else el.textContent = text;
+  }
+
+  function renderPills(rec, key) {
     var s = pillStatus(rec);
     $('pillsHero').classList.toggle('approved', s.done);
     countTo('pills', $('pillsCount').firstChild, s.n);
     setText($('pillsCount').lastChild, '/' + s.total);
     $('pillsBar').style.width = (s.n / s.total * 100) + '%';
-    $('pillsChip').innerHTML = s.done ? icon('check') + 'Approved' : (s.total - s.n) + ' left';
-    $('pillsState').textContent = s.done ? 'All pills taken' + (timeOf(s.at) ? ' · done at ' + timeOf(s.at) : '') : 'Tap each pill once you take it.';
+    setChip($('pillsChip'), s.done, (s.total - s.n) + ' left');
+    var st = $('pillsState');
+    if (s.done) {
+      // the button leaves the DOM; keyboard focus moves to the row that replaces it
+      var hadFocus = document.activeElement === markBtn;
+      if (markBtn.parentNode) markBtn.remove();
+      var when = whenText(s.at, key);
+      setText(st, 'All taken' + (when === LATER ? ' · ' + LATER : when ? ' · done at ' + when : ''));
+      if (hadFocus) { try { st.focus({ preventScroll: true }); } catch (e) {} }
+    } else {
+      setText(markBtn.lastChild, s.n ? 'Mark remaining ' + (s.total - s.n) + ' taken' : 'Mark all ' + s.total + ' taken');
+      if (markBtn.parentNode !== st) { st.textContent = ''; st.appendChild(markBtn); }
+    }
     var v = isObj(rec.pills) ? rec.pills : null;
     var all = !v && s.done; // an old one-tap "pills taken" day
     PILLS.forEach(function (p) {
       var at = v ? v[p.id] : all ? rec.pills : 0;
-      var on = isLegacyDone(at), el = pillEls[p.id];
-      el.setAttribute('aria-pressed', on ? 'true' : 'false');
-      el.setAttribute('aria-label', p.name + (on ? ', taken' : ', not taken'));
-      el.querySelector('.task-sub').textContent = on ? (timeOf(at) ? 'Taken at ' + timeOf(at) : 'Taken') : 'Not taken yet';
+      var on = isLegacyDone(at), el = pillEls[p.id], t = on ? whenText(at, key) : '';
+      setAttr(el, 'aria-pressed', on ? 'true' : 'false');
+      setAttr(el, 'aria-label', p.name + (!on ? ', not taken' : t === LATER ? ', taken, ' + LATER : t ? ', taken at ' + t : ', taken'));
+      setText(pillTimes[p.id], t);
     });
   }
 
-  function renderCalories(rec) {
-    var s = calStatus(rec);
+  // ---- Calories. The typed amount (calBuffer) previews in the hero: '+450 → 2,300 kcal' and an
+  // amber ghost on the bar. calShown is what the Calories tab last rendered.
+  var calShown = null;
+  var quickBtns = Array.prototype.slice.call($('quick').querySelectorAll('[data-quick]'));
+  quickBtns.forEach(function (b) { b.textContent = '+' + num(+b.getAttribute('data-quick')); });
+  function calEntries(rec) {
+    var c = rec.calories;
+    if (Array.isArray(c)) return c.filter(function (e) { var k = e ? Number(e.kcal) : 0; return isFinite(k) && k > 0; });
+    // an old one-tap "calories eaten" day: the entry its first change will create
+    if (typeof c === 'number' && isLegacyDone(c)) return [{ kcal: CAL_GOAL, ts: c }];
+    return [];
+  }
+  function renderCalories(rec, key) {
+    var s = calStatus(rec), list = calEntries(rec);
+    calShown = { total: s.total, done: s.done, at: s.at, list: list, key: key };
     $('calHero').classList.toggle('approved', s.done);
     countTo('calories', $('calTotal'), s.total);
-    $('calGoal').textContent = '/ ' + num(CAL_GOAL) + ' kcal';
+    fitSub($('calGoal'), ['/ ' + num(CAL_GOAL) + ' kcal', '/ ' + num(CAL_GOAL), '']);
     $('calBar').style.width = Math.min(100, s.total / CAL_GOAL * 100) + '%';
-    $('calChip').innerHTML = s.done ? icon('check') + 'Approved' : Math.round(Math.min(1, s.total / CAL_GOAL) * 100) + '%';
-    $('calState').textContent = s.done
-      ? 'Goal reached' + (timeOf(s.at) ? ' at ' + timeOf(s.at) : '') + (s.total > CAL_GOAL ? ' · ' + num(s.total - CAL_GOAL) + ' over' : '')
-      : num(CAL_GOAL - s.total) + ' kcal to go';
-    var list = Array.isArray(rec.calories) ? rec.calories.filter(function (e) { var k = e ? Number(e.kcal) : 0; return isFinite(k) && k > 0; }) : [];
-    $('entriesTitle').textContent = list.length ? 'Today · ' + plural(list.length, 'entry', 'entries') : 'Today';
-    if (!list.length) { $('entriesBox').innerHTML = '<p class="empty-note">Type an amount and tap Add, or use a quick button.</p>'; freshEntry = -1; return; }
-    var html = '<ul class="card entries">';
-    for (var i = list.length - 1; i >= 0; i--) {
-      var kcal = Number(list[i].kcal), ts = Number(list[i].ts);
-      if (!isFinite(ts)) ts = 0;
-      html += '<li class="entry' + (i === freshEntry ? ' fresh' : '') + '"><span class="t">' + timeOf(ts) + '</span>' +
-        '<span class="k num">+' + num(kcal) + ' kcal</span>' +
-        '<button type="button" data-ts="' + ts + '" data-kcal="' + kcal + '" aria-label="Remove ' + num(kcal) + ' kcal">' + icon('x') + '</button></li>';
+    setChip($('calChip'), s.done, num(Math.max(0, CAL_GOAL - s.total)) + ' left');
+    renderCalPreview();
+    renderEntries(list, key);
+  }
+  // The state row: what was last added (or the goal), or the typed amount's preview.
+  function calStateText(c) {
+    var when;
+    if (c.done) {
+      when = whenText(c.at, c.key);
+      return 'Goal reached' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '') +
+        (c.total > CAL_GOAL ? ' · ' + num(c.total - CAL_GOAL) + ' over' : '');
     }
-    $('entriesBox').innerHTML = html + '</ul>';
-    freshEntry = -1;
+    if (!c.total) return 'Type an amount or tap a quick add';
+    var last = null;
+    c.list.forEach(function (e) { if (!last || (Number(e.ts) || 0) > (Number(last.ts) || 0)) last = e; });
+    when = whenText(Number(last.ts), c.key);
+    return 'Last added +' + num(Number(last.kcal)) + ' kcal' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '');
+  }
+  function renderCalPreview() {
+    var c = calShown;
+    var n = parseInt(calBuffer || '0', 10) || 0;
+    var add = $('calAdd'), wasOff = add.disabled;
+    add.disabled = !n;
+    setText($('calAddLabel'), n ? 'Add ' + num(n) + ' kcal' : 'Add calories');
+    if (wasOff && n && !reduceMotion) restartClass(add, 'arm'); // the first digit: a small spring
+    if (!n) add.classList.remove('arm');
+    quickBtns.forEach(function (b) {
+      var q = num(+b.getAttribute('data-quick'));
+      setAttr(b, 'aria-label', n ? 'Add ' + q + ' to amount' : 'Add ' + q + ' kcal');
+    });
+    if (!c) return;
+    var after = c.total + n;
+    var cur = Math.min(100, c.total / CAL_GOAL * 100), proj = Math.min(100, after / CAL_GOAL * 100);
+    var ghost = $('calGhost');
+    ghost.style.left = cur + '%';
+    ghost.style.width = Math.max(0, proj - cur) + '%';
+    var st = $('calState'), sig;
+    if (n) {
+      var to = !c.done && after >= CAL_GOAL ? '→ goal reached' : '→ ' + num(after) + ' kcal';
+      sig = 'p|' + n + '|' + to;
+      if (st._sig !== sig) {
+        st._sig = sig;
+        st.innerHTML = '<span class="pv"><span class="pv-amt">+' + num(n) + '</span><span class="pv-to">' + to + '</span></span>';
+      }
+    } else {
+      var text = calStateText(c);
+      sig = 't|' + text;
+      if (st._sig !== sig) { st._sig = sig; st.textContent = text; }
+    }
   }
 
+  // Entry rows are keyed by time and amount and updated in place, so a delete leaves the other rows
+  // (and the focus) where they are; a row that appears later rises in.
+  var entryRows = {}, entriesDay = null;
+  function renderEntries(list, key) {
+    var title = key === viewKey ? 'Today' : FMT.dayShort(key);
+    setText($('entriesTitle'), list.length ? title + ' · ' + plural(list.length, 'entry', 'entries') : title);
+    var ul = $('entryList'), rebuild = entriesDay !== key;
+    if (rebuild) { ul.textContent = ''; entryRows = {}; entriesDay = key; }
+    var seen = {}, order = [], keep = {};
+    for (var i = list.length - 1; i >= 0; i--) { // newest first
+      var kcal = Number(list[i].kcal), ts = Number(list[i].ts);
+      if (!isFinite(ts)) ts = 0;
+      var base = ts + '|' + kcal;
+      seen[base] = (seen[base] || 0) + 1;
+      var k = base + '|' + seen[base], li = entryRows[k];
+      if (!li) {
+        li = document.createElement('li');
+        li.className = 'entry' + (rebuild ? '' : ' fresh');
+        li.innerHTML = '<span class="t"></span><span class="k num"></span><button type="button">' + icon('x') + '</button>';
+        entryRows[k] = li;
+      }
+      keep[k] = true;
+      var when = whenText(ts, key), b = li.lastChild;
+      setText(li.firstChild, when);
+      setText(li.childNodes[1], '+' + num(kcal) + ' kcal');
+      setAttr(b, 'data-ts', String(ts));
+      setAttr(b, 'data-kcal', String(kcal));
+      setAttr(b, 'aria-label', 'Remove ' + num(kcal) + ' kcal' + (when === LATER ? ', ' + LATER : when ? ' added at ' + when : ''));
+      order.push(li);
+    }
+    Object.keys(entryRows).forEach(function (k) { if (!keep[k]) { entryRows[k].remove(); delete entryRows[k]; } });
+    order.forEach(function (li, idx) { if (ul.children[idx] !== li) ul.insertBefore(li, ul.children[idx] || null); });
+    ul.hidden = !list.length;
+    $('entriesEmpty').hidden = !!list.length;
+  }
+  $('entryList').addEventListener('animationend', function (e) { if (e.target.classList) e.target.classList.remove('fresh'); });
+
+  // ---- Workout. #exList is built only when the plan changes (day, type or level); every other
+  // render updates the existing nodes, so set transitions animate and focus stays put.
+  // A day's plan for display: the stored one, or the one that day gets (an old one-tap "done"
+  // shows every set done, as its first change will store it).
+  function displayPlan(data, rec, key) {
+    var w = rec.workout;
+    if (isObj(w) && workoutDef(w.type)) return w;
+    var plan = workoutPlan(data, key);
+    if (isLegacyDone(w)) {
+      WORKOUTS[plan.type].ex.forEach(function (e) { var s = []; for (var i = 0; i < SETS; i++) s.push(w); plan.sets[e.id] = s; });
+    }
+    return plan;
+  }
+  var wo = { sig: null, cards: [] };
+  var HOLD_C = 282.74; // 2πr for r = 45 in the 96px hold ring
+  function buildWorkout(def) {
+    var html = '';
+    def.ex.forEach(function (e, n) {
+      var sets = '';
+      for (var i = 0; i < SETS; i++) {
+        sets += '<button type="button" class="set" data-ex="' + e.id + '" data-set="' + i + '" aria-pressed="false">' +
+          '<span class="mc">' + icon('check') + '</span><span class="set-t">Set ' + (i + 1) + '<span class="set-s"></span></span></button>';
+      }
+      html += '<section class="card ex">' +
+        '<div class="ex-head"><span class="ex-num" aria-hidden="true"><span class="tile face num" style="--accent: var(--blue)">' + (n + 1) + '</span>' +
+          '<span class="disc">' + icon('check') + '</span></span>' +
+        '<span class="ex-text"><span class="ex-name">' + e.name + '</span><span class="ex-variant">' + e.variant + '</span></span>' +
+        '<span class="ex-target"><span class="tg"><span class="lvl" hidden></span><b class="num"></b></span><span class="tg-u">' + (e.unit === 'sec' ? 'sec' : 'reps') + '</span></span></div>' +
+        '<div class="sets">' + sets + '</div>' +
+        (e.unit === 'sec' ?
+          '<button type="button" class="tint-btn hold-btn">' + icon('play') + '<span></span></button>' +
+          '<div class="hold-panel" hidden>' +
+            '<div class="hold-ring" aria-hidden="true"><svg viewBox="0 0 96 96"><circle class="hold-track" cx="48" cy="48" r="45"/><circle class="hold-arc zero" cx="48" cy="48" r="45"/></svg><span class="hold-num"></span></div>' +
+            '<div class="hold-side"><p class="hold-phase" aria-live="polite"></p><p class="hold-sub"></p>' +
+              '<div class="hold-actions"><button type="button" class="tint-btn hold-log" hidden>Log set</button><button type="button" class="hold-stop">Stop</button></div></div>' +
+          '</div>' : '') +
+        '</section>';
+    });
+    var list = $('exList');
+    list.innerHTML = html;
+    wo.cards = def.ex.map(function (e, n) {
+      var el = list.children[n], c = {
+        ex: e, el: el, lvl: el.querySelector('.lvl'), num: el.querySelector('.ex-target b'),
+        setsEl: el.querySelector('.sets'), sets: Array.prototype.slice.call(el.querySelectorAll('.set')),
+        suffix: Array.prototype.slice.call(el.querySelectorAll('.set-s')), hold: null
+      };
+      if (e.unit === 'sec') {
+        c.hold = { btn: el.querySelector('.hold-btn'), label: el.querySelector('.hold-btn span'), panel: el.querySelector('.hold-panel'),
+          arc: el.querySelector('.hold-arc'), num: el.querySelector('.hold-num'), phase: el.querySelector('.hold-phase'),
+          sub: el.querySelector('.hold-sub'), log: el.querySelector('.hold-log'), stop: el.querySelector('.hold-stop') };
+      }
+      return c;
+    });
+  }
   function renderWorkout(data, rec, key) {
-    var plan = isObj(rec.workout) && workoutDef(rec.workout.type) ? rec.workout : workoutPlan(data, key);
-    var w = WORKOUTS[plan.type], s = workoutStatus({ workout: plan });
+    var plan = displayPlan(data, rec, key);
+    var def = WORKOUTS[plan.type], s = workoutStatus({ workout: plan });
     var sets = isObj(plan.sets) ? plan.sets : {};
     var level = Number(plan.level) || 0;
-    $('woTitle').textContent = w.name;
+    var sig = key + '|' + plan.type + '|' + level;
+    if (sig !== wo.sig) { cancelHold(); buildWorkout(def); wo.sig = sig; }
+    setText($('woTitle'), def.name);
     $('woHero').classList.toggle('approved', s.done);
     countTo('workout', $('woCount').firstChild, s.n);
     setText($('woCount').lastChild, '/' + s.total);
+    fitSub($('woUnit'), ['sets done', 'sets']);
     $('woBar').style.width = (s.n / s.total * 100) + '%';
-    $('woChip').innerHTML = s.done ? icon('check') + 'Approved' : 'Session ' + (level + 1);
-    $('woSub').textContent = w.focus + ' · ' + SETS + ' sets each';
-    var html = '';
-    w.ex.forEach(function (e) {
-      var done = Array.isArray(sets[e.id]) ? sets[e.id] : [];
-      var complete = true;
-      var btns = '';
-      for (var i = 0; i < SETS; i++) {
+    setChip($('woChip'), s.done, (s.total - s.n) + ' left');
+    setText($('woState'), workoutStateText(data, key, plan, s));
+    var nextFound = s.done;
+    wo.cards.forEach(function (c) {
+      var e = c.ex, done = Array.isArray(sets[e.id]) ? sets[e.id] : [], complete = true, tg = target(e, level);
+      setText(c.num, String(tg));
+      setText(c.lvl, level ? (e.unit === 'sec' ? '+' + HANG_STEP + ' s' : '+' + REPS_STEP) : '');
+      c.lvl.hidden = !level;
+      c.sets.forEach(function (b, i) {
         var on = isLegacyDone(done[i]);
         if (!on) complete = false;
-        btns += '<button type="button" class="set" data-ex="' + e.id + '" data-set="' + i + '" aria-pressed="' + on + '" aria-label="' + e.name + ' ' + e.variant + ', set ' + (i + 1) + (on ? ', done' : '') + '">' +
-          '<span class="mc">' + icon('check') + '</span>Set ' + (i + 1) + '</button>';
+        setAttr(b, 'aria-pressed', on ? 'true' : 'false');
+        setAttr(b, 'aria-label', e.name + ', ' + e.variant.toLowerCase() + ', set ' + (i + 1) + ' of ' + SETS + ', ' + tg + (e.unit === 'sec' ? ' seconds' : ' reps'));
+        setText(c.suffix[i], ' · ' + tg + (e.unit === 'sec' ? ' s' : ' reps'));
+        var isNext = !on && !nextFound;
+        if (isNext) nextFound = true;
+        b.classList.toggle('next', isNext);
+        if (!on) b.classList.remove('pop');
+      });
+      c.el.classList.toggle('complete', complete);
+      if (c.hold) {
+        var timing = !!hold;
+        setText(c.hold.label, 'Start ' + tg + ' s hang');
+        c.hold.btn.hidden = complete || timing;
+        c.setsEl.hidden = timing;
+        c.hold.panel.hidden = !timing;
       }
-      html += '<section class="card ex' + (complete ? ' complete' : '') + '">' +
-        '<div class="ex-head"><span class="tile" style="--accent: var(--blue)" aria-hidden="true">' + icon(e.unit === 'sec' ? 'timer' : 'dumbbell') + '</span>' +
-        '<span class="ex-text"><span class="ex-name">' + e.name + '</span><span class="ex-variant">' + e.variant + '</span></span>' +
-        '<span class="ex-target"><b class="num">' + target(e, level) + '</b><span>' + (e.unit === 'sec' ? 'seconds' : 'reps') + ' × ' + SETS + '</span></span></div>' +
-        '<div class="sets">' + btns + '</div></section>';
     });
-    $('exList').innerHTML = html;
-    var tomorrow = keyFor(addDays(dateFromKey(key), 1));
-    var next = workoutPlan(data, tomorrow), nw = WORKOUTS[next.type];
-    $('woNext').textContent = 'Tomorrow: ' + nw.name + ' · ' + nw.ex.map(function (e) { return targetText(e, next.level); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(' / ');
+    // what tomorrow brings (not while a past day is on screen)
+    var nl = $('woNext');
+    nl.hidden = editKey !== null;
+    if (editKey === null) {
+      var next = workoutPlan(data, keyFor(addDays(dateFromKey(key), 1)));
+      setText(nl, 'Tomorrow · ' + WORKOUTS[next.type].name + ': ' + planSummary(next));
+    }
+  }
+  // 'push-ups & squats 9 reps' (A) or 'pull-ups 14 reps · hang 50 s' (B)
+  function planSummary(plan) {
+    var def = WORKOUTS[plan.type], level = Number(plan.level) || 0, names = [], reps = 0, secs = 0, parts = [];
+    def.ex.forEach(function (e) {
+      if (e.unit === 'sec') { secs = target(e, level); return; }
+      reps = target(e, level);
+      var n = e.name.toLowerCase();
+      if (names.indexOf(n) === -1) names.push(n);
+    });
+    if (names.length) parts.push(names.join(' & ') + ' ' + reps + ' reps');
+    if (secs) parts.push('hang ' + secs + ' s');
+    return parts.join(' · ');
+  }
+  // 'Sat', or 'Oct 12' when the day is more than 6 days before `from`
+  function dayRef(k, from) {
+    var d = Math.round((dateFromKey(from) - dateFromKey(k)) / DAY_MS);
+    return d > 6 ? FMT.monthDay(k) : FMT.weekdayShort(k);
+  }
+  // The Workout hero's state row: where this session comes from, or (done) what comes next.
+  function workoutStateText(data, key, plan, s) {
+    var def = WORKOUTS[plan.type], level = Number(plan.level) || 0;
+    if (s.done) {
+      var nk = keyFor(addDays(dateFromKey(key), 2)), np = workoutPlan(data, nk), tg = planTargets(np);
+      return 'Done · next ' + WORKOUTS[np.type].name + ' on ' + FMT.weekdayShort(nk) + ': ' + tg.reps + ' reps' + (tg.secs ? ' · ' + tg.secs + ' s hang' : '');
+    }
+    if (!level) return def.focus + ' · first session';
+    // The latest stored day of this workout before this one, and the latest completed one.
+    var latest = null, lastDone = null;
+    Object.keys(data.days).filter(function (k) { return isDayKey(k) && k < key; }).sort().reverse().some(function (k) {
+      var r = data.days[k];
+      if (!isObj(r) || !isObj(r.workout) || r.workout.type !== plan.type) return false;
+      if (!latest) latest = k;
+      if (workoutStatus(r).done) { lastDone = k; return true; }
+      return false;
+    });
+    var lv = function (k) { return Number(data.days[k].workout.level) || 0; };
+    if (latest && latest !== lastDone && lv(latest) === level) return def.focus + ' · same target as ' + dayRef(latest, key);
+    if (lastDone && level > lv(lastDone)) return def.focus + ' · +' + (level - lv(lastDone)) + ' since ' + dayRef(lastDone, key);
+    if (lastDone) return def.focus + ' · same target as ' + dayRef(lastDone, key);
+    return def.focus;
   }
 
   // How far a task is, 0..1 (a legacy one-tap "done" is 1).
@@ -2357,6 +2717,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     entries.forEach(function (e) { var f = e.target._fit; if (f) fitSub(e.target, f.forms); });
   }) : null;
   TASKS.forEach(function (t) { if (subObserver) subObserver.observe(cardParts[t.id].sub); });
+  // the task-tab hero units too: they are rendered while their tab is still hidden
+  ['calGoal', 'woUnit', 'finishText'].forEach(function (id) { if (subObserver) subObserver.observe($(id)); });
   // 'Pills approved, Calories 53%, Workout 3 of 6 sets'
   function valueText(id, st) {
     var w = taskWordOf(id);
@@ -2375,9 +2737,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
   var heroSubSig = null;
   function updateHeroSub() {
-    var key = shownKey(), total = TASKS.length, left = total - score(state.days[key]), now = new Date();
+    var key = viewKey, total = TASKS.length, left = total - score(state.days[key]), now = new Date();
     var base = left === total ? left + ' to go' : left + ' more to go';
-    var hint = left > 0 && editKey === null && key === keyFor(now) ? hoursLeft(now) : '';
+    var hint = left > 0 && key === keyFor(now) ? hoursLeft(now) : '';
     if (base + '|' + hint === heroSubSig) return;
     heroSubSig = base + '|' + hint;
     var el = $('heroSub');
@@ -2401,13 +2763,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else if (e.animationName === 'shimmer') $('bar').classList.remove('shimmer');
   }
 
-  // Tab dots, the dates, the Today hero and cards, and the streak chip.
+  // Tab dots, the date, the Today hero and cards, the streak chip, 'Finish yesterday' and the
+  // edit banners. Today always shows today; the tab dots follow the day on the task tabs (shownKey).
   var shellLast = null; // what the shell showed last: { key, done: { id: bool }, score, streak }
   function renderShell() {
-    var key = shownKey(), rec = state.days[key] || {};
-    var dateText = FMT.dayLong(key);
-    setText($('date'), dateText);
-    Array.prototype.forEach.call(document.querySelectorAll('.date-label'), function (el) { setText(el, dateText); });
+    var key = viewKey, rec = state.days[key] || {};
+    setText($('date'), FMT.dayLong(key));
 
     var prev = shellLast && shellLast.key === key ? shellLast : null; // null on the first render and after a new day
     var total = TASKS.length, done = 0, nowDone = {}, texts = [];
@@ -2428,8 +2789,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       seg.firstElementChild.style.setProperty('--p', String(Math.round(p * 1000) / 1000));
       seg.classList.toggle('done', st.done);
       texts.push(valueText(t.id, st));
+    });
+    var shown = state.days[shownKey()] || {};
+    TASKS.forEach(function (t) {
       var d = document.querySelector('[data-dot="' + t.id + '"]');
-      if (d) d.classList.toggle('on', st.done);
+      if (d) d.classList.toggle('on', isDone(t.id, shown));
     });
 
     countTo('today', $('count').firstChild, done);
@@ -2452,6 +2816,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     // today just completed and the streak went up: one pulse
     if (prev && key === viewKey && streak > prev.streak && done === total && prev.score < total && !reduceMotion) restartClass(chip, 'pulse');
     shellLast = { key: key, done: nowDone, score: done, streak: streak };
+    renderFinishCard();
+    renderEditBanners();
     renderDataUI();
   }
 
@@ -2484,9 +2850,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
   // One task tab only.
   function renderTab(name) {
-    var key = shownKey(), rec = state.days[key] || {};
-    if (name === 'pills') renderPills(rec);
-    else if (name === 'calories') renderCalories(rec);
+    var key = shownKey(), rec = isObj(state.days[key]) ? state.days[key] : {};
+    if (name === 'pills') renderPills(rec, key);
+    else if (name === 'calories') renderCalories(rec, key);
     else if (name === 'workout') renderWorkout(state, rec, key);
   }
 
@@ -2656,6 +3022,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (diff > 1 && d.getFullYear() !== today.getFullYear()) title = FMT.dayYear(d);
     var rec = isObj(data.days[key]) ? data.days[key] : {};
     var n = score(rec);
+    $('editDay').hidden = !canEdit(key, keyFor(today));
     setText($('detailTitle'), title);
     var pill = $('detailScore');
     setText(pill, n + '/' + TASKS.length);
@@ -2764,11 +3131,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var today = keyFor(now);
     if (viewKey !== today) {
       // first render, or the date changed: keep the start-of-day copy, then jump to today
+      // (a workout in progress on screen stays on its day: see rolloverEdit)
       snapshotDaily(today);
+      if (viewKey !== null) rolloverEdit(viewKey, today);
       viewKey = today;
       selectedKey = today;
       viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     }
+    if (hold && hold.key !== shownKey()) cancelHold(); // the day on screen changed
     var dirty = false;
     guard('prepare', function () {
       dirty = repairFirstDay(today);
@@ -2781,6 +3151,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (currentTab === 'today') { guard('history', renderHistory); historyDirty = false; }
     else historyDirty = true;
     queueTopbar();
+    syncWakeLock();
   }
 
   // firstDay must be a real day no later than today: otherwise use the earliest stored day.
@@ -2808,8 +3179,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var stale = false;
     if (editKey === null && targetKey !== nowKey) {
       // Midnight passed while this screen was showing.
-      if (targetKey === keyFor(addDays(dateFromKey(nowKey), -1))) stale = true; // the tap was meant for yesterday
-      else { render(); toast('New day started — tap again', { icon: 'alert' }); return false; }
+      if (targetKey !== keyFor(addDays(dateFromKey(nowKey), -1))) { render(); toast('New day started — tap again', { icon: 'alert' }); return false; }
+      // The tap was meant for yesterday. A workout in progress on screen keeps its day
+      // ('Finishing Mon, Oct 26'); anything else is saved there while the screen moves on.
+      if (targetKey === viewKey && finishesWorkout(targetKey)) { render(); if (editKey !== targetKey) stale = true; }
+      else stale = true;
     }
     var snap = { key: targetKey, before: JSON.stringify(has(state.days, targetKey) ? state.days[targetKey] : null) };
     undoSnap = snap; // only the latest snapshot is kept
@@ -2823,10 +3197,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var lost = TASKS.filter(function (t) { return was[t.id] && !isDone(t.id, rec); });
     var gained = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
     var text = null, ic = 'check';
+    // a past day being edited names itself: 'Sat, Oct 24 · Pills approved' (and never celebrates)
+    var day = editKey !== null && targetKey === editKey ? FMT.dayShort(targetKey) : '';
+    var completed = before < TASKS.length && score(rec) === TASKS.length;
     if (stale) { text = 'Saved to ' + FMT.dayShort(targetKey) + ' · New day started'; ic = 'info'; }
-    else if (lost.length) { text = taskWord(lost[0]) + ' no longer approved'; ic = 'alert'; }
-    else if (targetKey === nowKey && before < TASKS.length && score(rec) === TASKS.length) { celebrate(); text = 'All 3 done for today!'; }
-    else if (gained.length) text = taskWord(gained[0]) + ' approved';
+    else if (lost.length) { text = (day ? day + ' · ' : '') + taskWord(lost[0]) + ' no longer approved'; ic = 'alert'; }
+    else if (targetKey === nowKey && completed) { celebrate(); text = 'All 3 done for today!'; }
+    else if (day && completed) text = day + ' complete · streak updated';
+    else if (gained.length) text = (day ? day + ' · ' : '') + taskWord(gained[0]) + ' approved';
     else if (res && res.text) { text = res.text; ic = res.icon || 'check'; }
     if (res && res.undo && text) {
       toast(text, {
@@ -2857,6 +3235,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // ---- Tabs
   function showTab(name) {
     if (name === currentTab) { window.scrollTo(0, 0); return; }
+    var leftEdit = name === 'today' && editKey !== null;
+    if (leftEdit) clearEdit(); // the Today tab always shows today
+    cancelHold();
     currentTab = name;
     if (name !== 'today') guard('tab', function () { renderTab(name); });
     else if (historyDirty) { guard('history', renderHistory); historyDirty = false; }
@@ -2878,6 +3259,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     });
     window.scrollTo(0, 0);
     updateTopbar();
+    if (leftEdit) guard('shell', renderShell); // tab dots and banners back to today
+    if (name === 'workout') wakeTap(); else syncWakeLock();
   }
   $('tabbar').addEventListener('click', function (e) {
     var b = e.target.closest('.tab');
@@ -2908,10 +3291,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // ---- Calories keypad
   function setBuffer(v) {
     calBuffer = v;
-    var n = parseInt(calBuffer || '0', 10);
-    $('calInput').textContent = num(n);
-    $('calDisplay').classList.toggle('empty', !n);
-    $('calAdd').disabled = !n;
+    renderCalPreview();
   }
   $('keys').addEventListener('click', function (e) {
     var k = e.target.closest('.key');
@@ -2926,7 +3306,6 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return change(function (rec) {
       rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
       rec.calories.push({ kcal: n, ts: Date.now() });
-      freshEntry = rec.calories.length - 1;
       var total = calStatus(rec).total;
       return { text: 'Added ' + num(n) + ' kcal · ' + (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
     });
@@ -2936,15 +3315,28 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var n = parseInt(calBuffer || '0', 10);
     if (addCalories(n)) setBuffer('');
   });
+  // A quick button adds at once when nothing is typed (with Undo), and otherwise adds to the typed
+  // amount: 450, then +250, gives 700 (at most 9,999).
   $('quick').addEventListener('click', function (e) {
     var b = e.target.closest('[data-quick]');
-    if (b) addCalories(parseInt(b.getAttribute('data-quick'), 10));
+    if (!b) return;
+    var q = parseInt(b.getAttribute('data-quick'), 10);
+    if (calBuffer === '') addCalories(q);
+    else setBuffer(String(Math.min(9999, parseInt(calBuffer, 10) + q)));
   });
   // Delete by identity (time + amount), so a stale list can never remove a different entry.
+  // Focus then moves to the next row's delete button (or the list title once it is empty).
   $('entriesBox').addEventListener('click', function (e) {
     var b = e.target.closest('[data-ts]');
     if (!b) return;
+    var li = b.closest('li'), after = li && li.nextElementSibling, before = li && li.previousElementSibling;
     var ts = Number(b.getAttribute('data-ts')), kcal = Number(b.getAttribute('data-kcal'));
+    var refocus = function () {
+      if (b.isConnected && !b.closest('[hidden]')) return;
+      var to = [after, before, $('entryList').firstElementChild].filter(function (x) { return x && x.isConnected && x.parentNode === $('entryList'); })[0];
+      var el = to ? to.querySelector('button') : $('entriesTitle');
+      try { el.focus({ preventScroll: true }); } catch (err) {}
+    };
     change(function (rec) {
       if (!Array.isArray(rec.calories)) return null;
       for (var i = 0; i < rec.calories.length; i++) {
@@ -2956,15 +3348,20 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       }
       return null;
     });
+    refocus();
   });
 
   // ---- Workout sets
   $('exList').addEventListener('click', function (e) {
+    if (e.target.closest('.hold-btn')) { startHold(); return; }
+    if (e.target.closest('.hold-stop')) { cancelHold(); return; }
+    if (e.target.closest('.hold-log')) { logHold(); return; }
     var b = e.target.closest('.set');
     if (!b) return;
     var id = b.getAttribute('data-ex'), i = parseInt(b.getAttribute('data-set'), 10);
     if (!(i >= 0 && i < SETS)) return;
-    var ok = change(function (rec) {
+    wakeTap();
+    change(function (rec) {
       var def = isObj(rec.workout) ? workoutDef(rec.workout.type) : null;
       var ex = def ? def.ex.filter(function (x) { return x.id === id; })[0] : null;
       if (!ex) return null; // not in this day's workout
@@ -2972,13 +3369,284 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var s = rec.workout.sets[id] = Array.isArray(rec.workout.sets[id]) ? rec.workout.sets[id] : emptySets();
       var wasOn = isLegacyDone(s[i]);
       s[i] = wasOn ? 0 : Date.now();
-      if (!wasOn) return null; // checking is reversed by tapping again: no Undo
+      if (!wasOn) { pop(b); return null; } // checking is reversed by tapping again: no Undo
       return { text: exerciseLabel(def, ex) + ' · set ' + (i + 1) + ' unchecked', icon: 'info', undo: true };
     });
-    if (!ok) return;
-    var again = $('exList').querySelector('.set[data-ex="' + id + '"][data-set="' + i + '"]');
-    if (again && again.getAttribute('aria-pressed') === 'true') pop(again);
   });
+
+  /* ---- EDIT MODE: finish or fix one of the last 7 days on the task tabs.
+     While editKey is set the task tabs show that day, change() writes to it and the tab dots show
+     it. It ends on Done, the Today tab, a restore, a new day (except a workout in progress: see
+     rolloverEdit) and after 15 minutes in the background. Times written are the real time; a time
+     on another day than its record's reads 'logged later'. Nothing is stored until a change. */
+  var EDIT_DAYS = 7, EDIT_AWAY_MS = 15 * 60 * 1000;
+  var hiddenAt = 0; // when the page was last hidden (0 while visible)
+  function canEdit(key, today) {
+    today = today || viewKey;
+    if (!isDayKey(key) || !isDayKey(today) || key >= today) return false;
+    if (key < keyFor(addDays(dateFromKey(today), -EDIT_DAYS))) return false;
+    return !isDayKey(state.firstDay) || key >= state.firstDay;
+  }
+  function firstOpenTask(key) {
+    var rec = state.days[key];
+    var t = TASKS.filter(function (x) { return !isDone(x.id, rec); })[0];
+    return t ? t.id : 'pills';
+  }
+  // A workout with at least one set done but not finished.
+  function workoutInProgress(rec) {
+    if (!isObj(rec) || !isObj(rec.workout) || !workoutDef(rec.workout.type)) return false;
+    var s = workoutStatus(rec);
+    return s.n > 0 && !s.done;
+  }
+  function finishesWorkout(key) { return currentTab === 'workout' && editKey === null && workoutInProgress(state.days[key]); }
+  // Midnight: edit mode ends, except that a workout in progress on the Workout tab keeps its day
+  // ('Finishing Mon, Oct 26'). Pills and Calories always move on to the new day.
+  function rolloverEdit(oldKey, today) {
+    if (editKey !== null) { clearEdit(); return; }
+    if (oldKey === keyFor(addDays(dateFromKey(today), -1)) && finishesWorkout(oldKey) && canEdit(oldKey, today)) {
+      editKey = oldKey;
+      editMode = { finishing: true, from: 'workout' };
+    }
+  }
+  function enterEdit(key, tab, opts) {
+    if (!canEdit(key)) return false;
+    cancelHold();
+    editKey = key;
+    editMode = { finishing: !!(opts && opts.finishing), from: (opts && opts.from) || currentTab };
+    if (tab && tab !== currentTab) showTab(tab);
+    render();
+    return true;
+  }
+  // Leaves edit mode without rendering (callers render).
+  function clearEdit() {
+    if (editKey === null) return;
+    editKey = null;
+    editMode = null;
+    cancelHold();
+  }
+  function renderEditBanners() {
+    var on = editKey !== null, fin = on && !!(editMode && editMode.finishing);
+    var text = on ? (fin ? 'Finishing ' : 'Editing ') + FMT.dayShort(editKey) : '';
+    Array.prototype.forEach.call(document.querySelectorAll('.edit-banner'), function (el) {
+      if (el.hidden !== !on) el.hidden = !on;
+      setText(el.querySelector('.eb-text'), text);
+      setText(el.querySelector('.eb-done'), fin ? 'Go to today' : 'Done');
+    });
+  }
+  // Done goes back to Today, where editing started; 'Go to today' shows today on the same tab.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.eb-done') : null;
+    if (!b || editKey === null) return;
+    var finishing = !!(editMode && editMode.finishing);
+    clearEdit();
+    if (!finishing && currentTab !== 'today') showTab('today');
+    render();
+  });
+
+  // 'Finish yesterday' on Today, from 00:00 to 11:59, while yesterday has a task started but not done.
+  // ['Workout B 4/6 sets', 'Workout B 4/6']: the card shows the first that fits on one line
+  function finishLabels(id, rec) {
+    var s = STATUS[id](rec), base, unit;
+    if (id === 'pills') { base = 'Pills ' + s.n + '/' + s.total; unit = ' taken'; }
+    else if (id === 'calories') { base = 'Calories ' + num(s.total); unit = ' kcal'; }
+    else { base = 'Workout ' + s.type + ' ' + s.n + '/' + s.total; unit = ' sets'; }
+    return [base + unit, base];
+  }
+  function renderFinishCard() {
+    var card = $('finishCard'), now = new Date(), task = null, rec = null;
+    var yest = isDayKey(viewKey) ? keyFor(addDays(dateFromKey(viewKey), -1)) : null;
+    if (yest && now.getHours() < 12 && keyFor(now) === viewKey && canEdit(yest)) {
+      rec = state.days[yest];
+      if (isObj(rec)) TASKS.some(function (t) { if (hasProgress(t.id, rec) && !isDone(t.id, rec)) { task = t.id; return true; } return false; });
+    }
+    if (card.hidden !== !task) card.hidden = !task;
+    card._key = yest;
+    card._task = task;
+    fitSub($('finishText'), task ? finishLabels(task, rec).map(function (x) { return 'Yesterday: ' + x; }) : ['']);
+  }
+  $('finishBtn').addEventListener('click', function () {
+    var card = $('finishCard');
+    if (card._task) enterEdit(card._key, card._task, { from: 'today' });
+  });
+  $('editDay').addEventListener('click', function () {
+    if (canEdit(selectedKey)) enterEdit(selectedKey, firstOpenTask(selectedKey), { from: 'today' });
+  });
+
+  /* ---- Dead-hang hold timer. 'Start 25 s hang' → a 5 s 'Get ready' lead-in (time to put the
+     phone down and grip the bar), then the countdown. All timing comes from Date.now() against
+     startAt/endAt, checked on a 100ms interval plus rAF. Reaching 0 on screen logs the next hang
+     set like a tap; if the app was in the background when the time ran out, it waits for 'Log set'
+     and never logs by itself. Stop, a tab switch, a change of the day on screen or a restore
+     cancels without logging. One timer at a time; the app is not idle while it runs. */
+  var LEAD_MS = 5000;
+  var hold = null, audioCtx = null;
+  function holdCard() { for (var i = 0; i < wo.cards.length; i++) if (wo.cards[i].hold) return wo.cards[i]; return null; }
+  function nextHang(c) { for (var i = 0; i < c.sets.length; i++) if (c.sets[i].getAttribute('aria-pressed') !== 'true') return i; return -1; }
+  function startHold() {
+    var c = holdCard();
+    if (hold || !c || currentTab !== 'workout') return;
+    var i = nextHang(c);
+    if (i < 0) return;
+    // created or resumed inside the tap, so iOS lets the beep play later
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AC();
+        if (audioCtx.state === 'suspended' && audioCtx.resume) { var r = audioCtx.resume(); if (r && r.catch) r.catch(noop); }
+      }
+    } catch (e) { audioCtx = null; }
+    var key = shownKey(), plan = displayPlan(state, isObj(state.days[key]) ? state.days[key] : {}, key);
+    var secs = target(c.ex, Number(plan.level) || 0), now = Date.now();
+    var hadFocus = document.activeElement === c.hold.btn;
+    hold = { key: key, ex: c.ex.id, secs: secs, startAt: now + LEAD_MS, endAt: now + LEAD_MS + secs * 1000, sawHidden: false, reached: false, iv: 0, raf: 0 };
+    c.hold.btn.hidden = true;
+    c.setsEl.hidden = true;
+    c.hold.panel.hidden = false;
+    c.hold.log.hidden = true;
+    setText(c.hold.stop, 'Stop');
+    setText(c.hold.sub, 'Set ' + (i + 1) + ' of ' + SETS + ' · ' + secs + ' s');
+    hold.iv = setInterval(tickHold, 100);
+    tickHold();
+    if (hold) hold.raf = requestAnimationFrame(holdFrame);
+    wakeTap();
+    if (hadFocus) { try { c.hold.stop.focus({ preventScroll: true }); } catch (e) {} }
+    try { c.el.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); } catch (e) {} // ring and Stop above the tab bar
+  }
+  function holdFrame() {
+    if (!hold || hold.reached) return;
+    tickHold();
+    if (hold && !hold.reached) hold.raf = requestAnimationFrame(holdFrame);
+  }
+  function tickHold() {
+    var h = hold;
+    if (!h || h.reached) return;
+    if (h.key !== shownKey() || currentTab !== 'workout') { cancelHold(); return; }
+    if (document.hidden) { h.sawHidden = true; return; }
+    var now = Date.now();
+    if (now >= h.endAt) { if (h.sawHidden) holdReached(); else completeHold(); return; }
+    var c = holdCard();
+    if (!c) return;
+    var lead = now < h.startAt;
+    var n = Math.ceil(((lead ? h.startAt : h.endAt) - now) / 1000);
+    var p = lead ? 0 : Math.min(1, (now - h.startAt) / (h.endAt - h.startAt));
+    setText(c.hold.phase, lead ? 'Get ready' : 'Hold');
+    setText(c.hold.num, String(n));
+    c.hold.arc.style.strokeDashoffset = (HOLD_C * (1 - p)).toFixed(2);
+    c.hold.arc.classList.toggle('zero', p <= 0);
+  }
+  // The time ran out while the app was in the background: ask before logging.
+  function holdReached() {
+    var h = hold, c = holdCard();
+    if (!h) return;
+    h.reached = true;
+    clearInterval(h.iv);
+    cancelAnimationFrame(h.raf);
+    if (!c) return;
+    setText(c.hold.phase, 'Hold time reached');
+    setText(c.hold.num, '0');
+    c.hold.arc.style.strokeDashoffset = '0';
+    c.hold.arc.classList.remove('zero');
+    c.hold.log.hidden = false;
+    setText(c.hold.stop, 'Cancel');
+  }
+  function holdOnVisible() {
+    if (!hold || hold.reached) return;
+    if (Date.now() >= hold.endAt) holdReached();
+    else hold.sawHidden = false; // time remains: keep counting
+  }
+  // Stops the timer and puts the sets back. No render: callers render, or are rendering.
+  function endHold() {
+    var h = hold;
+    if (!h) return null;
+    hold = null;
+    clearInterval(h.iv);
+    cancelAnimationFrame(h.raf);
+    var c = holdCard();
+    if (c) {
+      var hadFocus = c.hold.panel.contains(document.activeElement);
+      c.hold.panel.hidden = true;
+      c.setsEl.hidden = false;
+      c.hold.btn.hidden = nextHang(c) < 0;
+      if (hadFocus) { try { (c.hold.btn.hidden ? c.sets[SETS - 1] : c.hold.btn).focus({ preventScroll: true }); } catch (e) {} }
+    }
+    return h;
+  }
+  function cancelHold() { if (endHold()) syncWakeLock(); }
+  function completeHold() { var h = endHold(); if (h) logHang(h, true); }
+  function logHold() { var h = endHold(); if (h) logHang(h, false); }
+  // Checks the next unchecked hang set of the timer's day, exactly like a tap on it.
+  function logHang(h, auto) {
+    var logged = -1;
+    change(function (rec) {
+      var def = isObj(rec.workout) ? workoutDef(rec.workout.type) : null;
+      if (!def || !def.ex.some(function (x) { return x.id === h.ex; })) return null;
+      if (!isObj(rec.workout.sets)) rec.workout.sets = {};
+      var s = rec.workout.sets[h.ex] = Array.isArray(rec.workout.sets[h.ex]) ? rec.workout.sets[h.ex] : emptySets();
+      for (var i = 0; i < SETS && logged < 0; i++) if (!isLegacyDone(s[i])) { s[i] = Date.now(); logged = i; }
+      if (logged < 0) return null;
+      var c = holdCard();
+      if (c) pop(c.sets[logged]);
+      return { text: 'Hang set ' + (logged + 1) + ' logged' };
+    }, { key: h.key });
+    if (logged >= 0 && auto) beep();
+    wakeTap();
+  }
+  // 880 Hz for 150 ms. Silent with the ring switch off on iPhone, which is accepted.
+  function beep() {
+    try {
+      if (!audioCtx || audioCtx.state === 'closed') return;
+      var t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.value = 0.15;
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.15);
+    } catch (e) {}
+  }
+
+  /* ---- Screen Wake Lock while a workout is under way: on the Workout tab, the day on screen not
+     done yet, the page visible, and a set tapped (or the tab opened) in the last 20 minutes.
+     Feature-detected and silent on failure (it does not work in iOS Home Screen apps before 18.4). */
+  var WAKE_IDLE_MS = 20 * 60 * 1000;
+  var wake = { lock: null, pending: false, lastTap: 0, timer: 0 };
+  function wakeTap() {
+    wake.lastTap = Date.now();
+    clearTimeout(wake.timer);
+    wake.timer = setTimeout(syncWakeLock, WAKE_IDLE_MS + 50);
+    syncWakeLock();
+  }
+  function wantWake() {
+    if (currentTab !== 'workout' || document.hidden || viewKey === null) return false;
+    if (!hold && Date.now() - wake.lastTap >= WAKE_IDLE_MS) return false;
+    var key = shownKey();
+    return !workoutStatus({ workout: displayPlan(state, isObj(state.days[key]) ? state.days[key] : {}, key) }).done;
+  }
+  function releaseWake() {
+    var l = wake.lock;
+    wake.lock = null;
+    if (!l) return;
+    try { var p = l.release(); if (p && p.catch) p.catch(noop); } catch (e) {}
+  }
+  function syncWakeLock() {
+    var wl = navigator.wakeLock;
+    if (!wl || typeof wl.request !== 'function') return;
+    var want;
+    try { want = wantWake(); } catch (e) { want = false; }
+    if (!want) { releaseWake(); return; }
+    if (wake.lock || wake.pending) return;
+    wake.pending = true;
+    try {
+      Promise.resolve(wl.request('screen')).then(function (l) {
+        wake.pending = false;
+        if (!l) return;
+        wake.lock = l;
+        try { l.addEventListener('release', function () { if (wake.lock === l) wake.lock = null; }); } catch (e) {}
+        if (!wantWake()) releaseWake(); // things changed while it was being granted
+      }, function () { wake.pending = false; });
+    } catch (e) { wake.pending = false; }
+  }
 
   // ---- History: pick a day, change month
   // The cells are updated in place, so the tapped (or Enter-pressed) cell keeps focus.
@@ -3025,7 +3693,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function refreshIfNewDay(force) {
     var newDay = viewKey !== null && keyFor(new Date()) !== viewKey;
     if (newDay || force === true) render();
-    else if (viewKey !== null) guard('shell', updateHeroSub); // the evening '· N h left' hint
+    else if (viewKey !== null) guard('shell', function () { updateHeroSub(); renderFinishCard(); }); // '· N h left'; 'Finish yesterday' until noon
     if (newDay) toast('New day · ' + FMT.dayLong(viewKey), { icon: 'info', passive: true });
     scheduleMidnight();
   }
@@ -3303,7 +3971,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     corruptHiddenByRestore = !!activeBanners.corrupt;
     hideBanner('corrupt');
     setMeta({ lastRestoreAt: Date.now() });
-    editKey = null;
+    clearEdit();
+    cancelHold();
     undoSnap = null;
     historyDirty = true;
     render();
@@ -3318,7 +3987,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       if (s.raw === null) window.localStorage.removeItem(STORAGE_KEY);
       else window.localStorage.setItem(STORAGE_KEY, s.raw);
     } catch (e) { toast("Couldn't undo the restore", { icon: 'alert' }); return; }
-    editKey = null;
+    clearEdit();
+    cancelHold();
     undoSnap = null;
     historyDirty = true;
     loadState(); // shows the corrupt banner itself if the snapshot is the damaged string
@@ -3394,7 +4064,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   var lastUpdateCheck = Date.now();
 
   function isIdle() {
-    return calBuffer === '' && editKey === null && !undoSnap && !document.querySelector('dialog[open]');
+    return calBuffer === '' && editKey === null && !hold && !undoSnap && !document.querySelector('dialog[open]');
   }
   function reloadOnce() {
     var now = Date.now(), last = 0;
@@ -3425,9 +4095,20 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('pointerdown', markTouched, true);
   document.addEventListener('keydown', markTouched, true);
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) return;
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      if (hold) hold.sawHidden = true;
+      syncWakeLock();
+      return;
+    }
     touchedSinceVisible = false;
+    // The screen auto-locks between sets, so edit mode survives short trips away; after 15 minutes
+    // in the background the app is back on today.
+    if (editKey !== null && hiddenAt && Date.now() - hiddenAt > EDIT_AWAY_MS) { clearEdit(); render(); }
+    hiddenAt = 0;
     refreshIfNewDay();
+    holdOnVisible();
+    syncWakeLock();
     if (updateReady && isIdle()) { reloadOnce(); return; }
     if (Date.now() - lastUpdateCheck >= 60 * 1000) checkForUpdate();
   });

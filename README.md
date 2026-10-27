@@ -3,9 +3,11 @@
 A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calories Eaten 🍽️** and **Workout Done 💪**.
 
 - Four tabs: **Today**, **Pills**, **Calories**, **Workout**. A task is approved automatically when its tab is complete:
-  - **Pills**: all six checked (Finasteride, Iron, Omega 3, Vitamin D3, Hair pills, Magnesium).
-  - **Calories**: add amounts with the keypad or quick buttons until the day reaches 3,500 kcal.
-  - **Workout**: Workout A and B alternate daily, 2 sets per exercise. Reps start at 8 (dead hangs at 20 s) and go up by 1 rep (5 s) each time you finish that workout.
+  - **Pills**: all six checked (Finasteride, Iron, Omega 3, Vitamin D3, Hair pills, Magnesium). "Mark remaining taken" checks the rest in one tap.
+  - **Calories**: add amounts with the keypad or quick buttons until the day reaches 3,500 kcal. The typed amount previews in the header (+450 → 2,300 kcal); a quick button adds at once, or adds to the amount you are typing.
+  - **Workout**: Workout A and B alternate daily, 2 sets per exercise. Reps start at 8 (dead hangs at 20 s) and go up by 1 rep (5 s) each time you finish that workout. The next set is outlined, and dead hangs have a hold timer (5 s to get ready, then the countdown). The screen stays awake during a workout where iOS allows it.
+- Each task tab fits on one screen, even on an iPhone SE.
+- **Finish or fix the last 7 days**: tap a day in History → **Edit this day**, or **Finish** on the "Yesterday: …" card that shows on Today until noon. A workout still going at midnight stays on its day ("Finishing Mon, Oct 26") until you tap **Go to today**.
 - Settings live at the top of the script in `index.html` (`PILLS`, `CAL_GOAL`, `WORKOUTS`, `REPS_START`, …).
 - Today shows N/3 approved, one bar segment per task (partly filled as you go, green once approved), a ring on each task card and what's left (e.g. "Missing: Iron, Magnesium"). From 8 PM it also says how many hours are left. At 3/3 the hero says "All done for today!".
 - Each calendar day (phone's local time) is stored separately. A new day starts unchecked, even if the app stays open past midnight.
