@@ -3399,10 +3399,17 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return s.n > 0 && !s.done;
   }
   function finishesWorkout(key) { return currentTab === 'workout' && editKey === null && workoutInProgress(state.days[key]); }
+  // More than 15 minutes since the page was hidden (it is still hidden, or coming back now).
+  function awayTooLong() { return hiddenAt > 0 && Date.now() - hiddenAt > EDIT_AWAY_MS; }
   // Midnight: edit mode ends, except that a workout in progress on the Workout tab keeps its day
   // ('Finishing Mon, Oct 26'). Pills and Calories always move on to the new day.
+  // Only a workout still under way finishes: not when the new day is noticed after more than 15
+  // minutes in the background (iOS suspends the midnight timer, so a phone locked at 23:50 and
+  // opened in the morning notices it then), nor more than 15 minutes after midnight, when the page
+  // cannot have been running. Those open on today; 'Finish yesterday' covers the morning.
   function rolloverEdit(oldKey, today) {
     if (editKey !== null) { clearEdit(); return; }
+    if (awayTooLong() || Date.now() - dateFromKey(today).getTime() > EDIT_AWAY_MS) return;
     if (oldKey === keyFor(addDays(dateFromKey(today), -1)) && finishesWorkout(oldKey) && canEdit(oldKey, today)) {
       editKey = oldKey;
       editMode = { finishing: true, from: 'workout' };
@@ -3619,7 +3626,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
   function wantWake() {
     if (currentTab !== 'workout' || document.hidden || viewKey === null) return false;
-    if (!hold && Date.now() - wake.lastTap >= WAKE_IDLE_MS) return false;
+    // a running hold counts as activity; 'Hold time reached' waiting for 'Log set' does not
+    if (!(hold && !hold.reached) && Date.now() - wake.lastTap >= WAKE_IDLE_MS) return false;
     var key = shownKey();
     return !workoutStatus({ workout: displayPlan(state, isObj(state.days[key]) ? state.days[key] : {}, key) }).done;
   }
@@ -3697,9 +3705,21 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (newDay) toast('New day · ' + FMT.dayLong(viewKey), { icon: 'info', passive: true });
     scheduleMidnight();
   }
+  // Back in the foreground: a visibility change, or a page restored from the back-forward cache.
+  // The screen auto-locks between sets, so edit mode survives short trips away; after more than
+  // 15 minutes in the background the app is back on today, and a new day noticed now does not
+  // keep yesterday's workout on screen (rolloverEdit reads hiddenAt, so it is cleared only after).
+  function backToForeground(reload) {
+    var away = awayTooLong(), wasEditing = editKey !== null;
+    if (away) clearEdit();
+    try { refreshIfNewDay(reload || (away && wasEditing)); }
+    finally { if (!document.hidden) hiddenAt = 0; }
+  }
   window.addEventListener('focus', refreshIfNewDay);
   window.addEventListener('pageshow', function (e) {
-    if (e.persisted && storageMode !== 'memory') { loadState(); refreshIfNewDay(true); }
+    var reload = e.persisted && storageMode !== 'memory';
+    if (reload) loadState();
+    if (e.persisted) backToForeground(reload);
     else refreshIfNewDay();
   });
   window.addEventListener('storage', function (e) {
@@ -4102,11 +4122,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       return;
     }
     touchedSinceVisible = false;
-    // The screen auto-locks between sets, so edit mode survives short trips away; after 15 minutes
-    // in the background the app is back on today.
-    if (editKey !== null && hiddenAt && Date.now() - hiddenAt > EDIT_AWAY_MS) { clearEdit(); render(); }
-    hiddenAt = 0;
-    refreshIfNewDay();
+    backToForeground(false);
     holdOnVisible();
     syncWakeLock();
     if (updateReady && isIdle()) { reloadOnce(); return; }
