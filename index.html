@@ -212,6 +212,9 @@ header { display: flex; flex-direction: column; gap: 2px; }
   text-transform: uppercase;
 }
 h1 { margin: 0; font-size: var(--fs-large); line-height: 41px; font-weight: 700; letter-spacing: -.025em; }
+/* A tab switch moves focus to the new view's title (tabindex -1): a ring for the keyboard only */
+h1:focus:not(:focus-visible) { outline: none; }
+h1:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
 /* Today: date and title on the left, the 'Your data' button on the right, centred on the h1 */
 header.today-head { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); }
 .head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -641,7 +644,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .tab .dot.on { transform: scale(1); }
 /* Landscape phones: a compact bar with the label beside the icon */
 @media (orientation: landscape) and (max-height: 500px) {
-  .tab { flex-direction: row; min-height: 40px; gap: 6px; font-size: var(--fs-footnote); line-height: 18px; }
+  /* The bar row stays 40px (bar ≤ 62px with a 21px inset), but each tab's tap target is 44px tall:
+     the extra 4px reaches into the bar's bottom padding, below the icon and label. */
+  .tab { flex-direction: row; min-height: 44px; margin-bottom: -4px; gap: 6px; font-size: var(--fs-footnote); line-height: 18px; }
   .tab-ic { position: relative; }
   /* the icon's top-right, tucked onto the icon: the label starts 30px from the icon's left (24px icon + 6px gap),
      so the dot (14-26px) and its 2px ring (12-28px) end before the label instead of cutting into its first letter */
@@ -831,7 +836,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue);
   font-size: var(--fs-caption2); line-height: 13px; font-weight: 700; white-space: nowrap;
 }
-.sets { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-2); }
+.sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); } /* never wider than the card: the suffix gives way (fitSuffix) */
 .set {
   min-height: 52px; padding: 0 8px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--card-hi);
@@ -1080,7 +1085,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   <header class="today-head">
     <div class="head-text">
       <p class="eyebrow" id="date"></p>
-      <h1>Daily Tasks</h1>
+      <h1 tabindex="-1">Daily Tasks</h1>
     </div>
     <button class="data-btn" id="dataBtn" type="button" aria-label="Backup &amp; restore"><span data-icon="backup"></span><span class="data-dot" id="dataDot" hidden></span></button>
   </header>
@@ -1158,7 +1163,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Pills -->
  <section class="view" id="view-pills" hidden>
-  <header><h1>Pills</h1></header>
+  <header><h1 tabindex="-1">Pills</h1></header>
   <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="pillsHero" style="--accent: var(--violet)">
     <div class="hero-top">
@@ -1173,7 +1178,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Calories -->
  <section class="view" id="view-calories" hidden>
-  <header><h1>Calories</h1></header>
+  <header><h1 tabindex="-1">Calories</h1></header>
   <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="calHero" style="--accent: var(--amber)">
     <div class="hero-top">
@@ -1204,7 +1209,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Workout -->
  <section class="view" id="view-workout" hidden>
-  <header><h1 id="woTitle">Workout</h1></header>
+  <header><h1 id="woTitle" tabindex="-1">Workout</h1></header>
   <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
   <section class="card hero tab-hero" id="woHero" style="--accent: var(--blue)">
     <div class="hero-top">
@@ -1220,12 +1225,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 </main>
 
 <div class="topbar" id="topbar" aria-hidden="true"><span id="topTitle"></span></div>
+<!-- Each task tab's name for VoiceOver is its .sr text: 'Pills', or 'Pills, approved' while its dot is on
+     (one text run: a separate block would be read as 'Pills , approved'). -->
 <nav class="tabbar" aria-label="Sections">
   <div class="tabbar-inner" id="tabbar">
     <button class="tab on" type="button" data-tab="today" style="--tab-accent: var(--green)" aria-current="page"><span class="tab-ic"><span class="tab-glyph" data-icon="home"></span></span><span class="tab-label">Today</span></button>
-    <button class="tab" type="button" data-tab="pills" style="--tab-accent: var(--violet)"><span class="tab-ic"><span class="tab-glyph" data-icon="pill"></span><span class="dot" data-dot="pills" data-icon="check"></span></span><span class="tab-label">Pills</span></button>
-    <button class="tab" type="button" data-tab="calories" style="--tab-accent: var(--amber)"><span class="tab-ic"><span class="tab-glyph" data-icon="utensils"></span><span class="dot" data-dot="calories" data-icon="check"></span></span><span class="tab-label">Calories</span></button>
-    <button class="tab" type="button" data-tab="workout" style="--tab-accent: var(--blue)"><span class="tab-ic"><span class="tab-glyph" data-icon="dumbbell"></span><span class="dot" data-dot="workout" data-icon="check"></span></span><span class="tab-label">Workout</span></button>
+    <button class="tab" type="button" data-tab="pills" style="--tab-accent: var(--violet)"><span class="tab-ic"><span class="tab-glyph" data-icon="pill"></span><span class="dot" data-dot="pills" data-icon="check" aria-hidden="true"></span></span><span class="tab-label" aria-hidden="true">Pills</span><span class="sr">Pills<span data-sr="pills" hidden>, approved</span></span></button>
+    <button class="tab" type="button" data-tab="calories" style="--tab-accent: var(--amber)"><span class="tab-ic"><span class="tab-glyph" data-icon="utensils"></span><span class="dot" data-dot="calories" data-icon="check" aria-hidden="true"></span></span><span class="tab-label" aria-hidden="true">Calories</span><span class="sr">Calories<span data-sr="calories" hidden>, approved</span></span></button>
+    <button class="tab" type="button" data-tab="workout" style="--tab-accent: var(--blue)"><span class="tab-ic"><span class="tab-glyph" data-icon="dumbbell"></span><span class="dot" data-dot="workout" data-icon="check" aria-hidden="true"></span></span><span class="tab-label" aria-hidden="true">Workout</span><span class="sr">Workout<span data-sr="workout" hidden>, approved</span></span></button>
   </div>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-ic" id="toastIcon" aria-hidden="true"></span><span class="toast-text" id="toastText"></span><button class="toast-act" id="toastAct" type="button" hidden></button></div>
@@ -1305,7 +1312,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('touchstart', function () {}, { passive: true });
   window.__touchListener = true;
 
-  var APP_VERSION = 'v10'; // must equal the suffix of VERSION in sw.js; bump both together
+  var APP_VERSION = 'v11'; // must equal the suffix of VERSION in sw.js; bump both together
 
   /* =====================================================================
      SETTINGS — what each task needs
@@ -2133,6 +2140,32 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('animationend', endPop);
   document.addEventListener('animationcancel', endPop);
 
+  // ---- Haptic tick. navigator.vibrate where it exists (not on iPhone); on iOS 18 and later,
+  // toggling a hidden <input type="checkbox" switch> inside a tap gives the system's tick.
+  // Called synchronously in a few tap handlers only (a pill or set checked, Add, a one-tap quick
+  // add, Mark remaining), plus a second tick 110ms later when that tap approves a task (see
+  // change()). Never on unchecks, deletes or keypad digits. The switch is never rendered (display
+  // none, in <head>), so it can never take focus; anything unsupported stays silent.
+  var hapticCount = 0;
+  window.__hapticCount = 0; // for the acceptance tests
+  var coarseMq = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+  function haptic() {
+    window.__hapticCount = ++hapticCount;
+    try {
+      if (typeof navigator.vibrate === 'function') { navigator.vibrate(10); return; }
+      if (!(coarseMq && coarseMq.matches)) return;
+      var label = document.createElement('label'), input = document.createElement('input');
+      label.setAttribute('aria-hidden', 'true');
+      label.style.display = 'none';
+      input.type = 'checkbox';
+      input.setAttribute('switch', '');
+      input.tabIndex = -1;
+      label.appendChild(input);
+      document.head.appendChild(label);
+      try { label.click(); } finally { label.remove(); }
+    } catch (e) { /* no haptics here */ }
+  }
+
   // ---- System banner (storage and display problems), above every tab
   var BANNERS = {
     unavailable: { level: 'error', title: 'Storage is unavailable. Nothing will be saved.', actions: [] },
@@ -2230,7 +2263,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         '<svg class="ring-svg" viewBox="0 0 32 32"><circle class="ring-track" cx="16" cy="16" r="13"/><circle class="ring-arc zero" cx="16" cy="16" r="13"/></svg>' +
         '<span class="ring-disc">' + CHECK_SVG + '</span></span>' +
       '<span class="chev" aria-hidden="true">' + icon('chevron') + '</span>';
-    btn.addEventListener('click', function () { showTab(t.id); });
+    btn.addEventListener('click', function () { showTab(t.id, { top: true }); });
     li.appendChild(btn);
     $('tasks').appendChild(li);
     taskEls[t.id] = btn;
@@ -2278,7 +2311,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         if (!isObj(rec.pills)) rec.pills = {};
         var wasOn = isLegacyDone(rec.pills[p.id]);
         rec.pills[p.id] = wasOn ? 0 : Date.now();
-        if (!wasOn) { pop(btn); return null; } // checking is reversed by tapping again: no Undo
+        if (!wasOn) { haptic(); pop(btn); return null; } // checking is reversed by tapping again: no Undo
         return { text: p.name + ' unchecked', icon: 'info', undo: true };
       });
     });
@@ -2303,6 +2336,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         rec.pills[p.id] = at; n++;
         pop(pillEls[p.id]);
       });
+      if (n) haptic();
       return n ? { text: plural(n, 'pill') + ' marked taken', undo: true } : null;
     });
   });
@@ -2560,6 +2594,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         '</section>';
     });
     var list = $('exList');
+    if (subObserver) wo.cards.forEach(function (c) { c.sets.forEach(function (b) { subObserver.unobserve(b); }); });
     list.innerHTML = html;
     wo.cards = def.ex.map(function (e, n) {
       var el = list.children[n], c = {
@@ -2567,6 +2602,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         setsEl: el.querySelector('.sets'), sets: Array.prototype.slice.call(el.querySelectorAll('.set')),
         suffix: Array.prototype.slice.call(el.querySelectorAll('.set-s')), hold: null
       };
+      if (subObserver) c.sets.forEach(function (b) { subObserver.observe(b); });
       if (e.unit === 'sec') {
         c.hold = { btn: el.querySelector('.hold-btn'), label: el.querySelector('.hold-btn span'), panel: el.querySelector('.hold-panel'),
           arc: el.querySelector('.hold-arc'), num: el.querySelector('.hold-num'), phase: el.querySelector('.hold-phase'),
@@ -2601,7 +2637,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         if (!on) complete = false;
         setAttr(b, 'aria-pressed', on ? 'true' : 'false');
         setAttr(b, 'aria-label', e.name + ', ' + e.variant.toLowerCase() + ', set ' + (i + 1) + ' of ' + SETS + ', ' + tg + (e.unit === 'sec' ? ' seconds' : ' reps'));
-        setText(c.suffix[i], ' · ' + tg + (e.unit === 'sec' ? ' s' : ' reps'));
+        fitSuffix(b, c.suffix[i], [' · ' + tg + (e.unit === 'sec' ? ' s' : ' reps'), ' · ' + tg, '']);
         var isNext = !on && !nextFound;
         if (isNext) nextFound = true;
         b.classList.toggle('next', isNext);
@@ -2705,6 +2741,25 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
   // Show the first form that fits the subtitle's width. A hidden card (another tab is showing) keeps
   // the full form; the ResizeObserver below fits it again once it has a width, and after a rotation.
+  // A set button's muted suffix: ' · 11 reps', or, when a 3-digit target does not fit a narrow phone,
+  // ' · 388' and then nothing (the target is on the card; the aria-label keeps it all). Measured on
+  // the button, whose width never depends on its text.
+  function fitSuffix(btn, el, forms) {
+    var w = btn.clientWidth, sig = forms.join('\n');
+    if (btn._fit && btn._fit.sig === sig && btn._fit.w === w) return;
+    btn._fit = { sig: sig, w: w, forms: forms, suffix: el };
+    setText(el, forms[0]);
+    if (!w) return;
+    for (var i = 1; i < forms.length && overflowsContent(btn); i++) setText(el, forms[i]);
+  }
+  // Whether a flex row's items (and gaps) need more than its content box. Layout widths, so a
+  // pressed (scaled) button measures the same.
+  function overflowsContent(box) {
+    var cs = getComputedStyle(box), need = 0, n = 0;
+    for (var c = box.firstElementChild; c; c = c.nextElementSibling) { need += c.offsetWidth; n++; }
+    need += (parseFloat(cs.columnGap) || 0) * Math.max(0, n - 1);
+    return need > box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  }
   function fitSub(el, forms) {
     var w = el.clientWidth, sig = forms.join('\n');
     if (el._fit && el._fit.sig === sig && el._fit.w === w) return;
@@ -2714,7 +2769,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     for (var i = 1; i < forms.length && el.scrollWidth > el.clientWidth; i++) setText(el, forms[i]);
   }
   var subObserver = window.ResizeObserver ? new ResizeObserver(function (entries) {
-    entries.forEach(function (e) { var f = e.target._fit; if (f) fitSub(e.target, f.forms); });
+    entries.forEach(function (e) { var f = e.target._fit; if (f) { if (f.suffix) fitSuffix(e.target, f.suffix, f.forms); else fitSub(e.target, f.forms); } });
   }) : null;
   TASKS.forEach(function (t) { if (subObserver) subObserver.observe(cardParts[t.id].sub); });
   // the task-tab hero units too: they are rendered while their tab is still hidden
@@ -2766,6 +2821,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // Tab dots, the date, the Today hero and cards, the streak chip, 'Finish yesterday' and the
   // edit banners. Today always shows today; the tab dots follow the day on the task tabs (shownKey).
   var shellLast = null; // what the shell showed last: { key, done: { id: bool }, score, streak }
+  var tabDots = {}, tabSrs = {};
+  TASKS.forEach(function (t) { tabDots[t.id] = document.querySelector('[data-dot="' + t.id + '"]'); tabSrs[t.id] = document.querySelector('[data-sr="' + t.id + '"]'); });
   function renderShell() {
     var key = viewKey, rec = state.days[key] || {};
     setText($('date'), FMT.dayLong(key));
@@ -2792,8 +2849,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     });
     var shown = state.days[shownKey()] || {};
     TASKS.forEach(function (t) {
-      var d = document.querySelector('[data-dot="' + t.id + '"]');
-      if (d) d.classList.toggle('on', isDone(t.id, shown));
+      var on = isDone(t.id, shown), d = tabDots[t.id], sr = tabSrs[t.id];
+      if (d) d.classList.toggle('on', on);
+      if (sr && sr.hidden !== !on) sr.hidden = !on; // VoiceOver: 'Pills, approved'
     });
 
     countTo('today', $('count').firstChild, done);
@@ -3133,7 +3191,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       // first render, or the date changed: keep the start-of-day copy, then jump to today
       // (a workout in progress on screen stays on its day: see rolloverEdit)
       snapshotDaily(today);
-      if (viewKey !== null) rolloverEdit(viewKey, today);
+      if (viewKey !== null) { rolloverEdit(viewKey, today); forgetScroll(); }
       viewKey = today;
       selectedKey = today;
       viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -3191,11 +3249,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var was = {};
     TASKS.forEach(function (t) { was[t.id] = isDone(t.id, rec); });
     var before = score(rec);
+    var ticks = hapticCount;
     var res = fn(rec, state) || null;
     persist();
     render();
     var lost = TASKS.filter(function (t) { return was[t.id] && !isDone(t.id, rec); });
     var gained = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
+    if (gained.length && hapticCount > ticks) setTimeout(haptic, 110); // a 'success' double tick
     var text = null, ic = 'check';
     // a past day being edited names itself: 'Sat, Oct 24 · Pills approved' (and never celebrates)
     var day = editKey !== null && targetKey === editKey ? FMT.dayShort(targetKey) : '';
@@ -3232,9 +3292,21 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     toast('Undone', { icon: 'info' });
   }
 
-  // ---- Tabs
-  function showTab(name) {
-    if (name === currentTab) { window.scrollTo(0, 0); return; }
+  // ---- Tabs. Each tab keeps its scroll position while you switch between tabs; a new day and
+  // entering or leaving edit mode forget the positions (forgetScroll). Re-tapping the active tab
+  // goes back to the top. Focus follows the switch: if it was in the view being hidden (or
+  // nowhere), it moves to the new view's title, except after a tab-bar tap, where it stays on the tab.
+  var scrollMem = {}, scrollTok = 0;
+  function forgetScroll() { scrollMem = {}; }
+  function scrollTop(smooth) {
+    try { window.scrollTo({ top: 0, left: 0, behavior: smooth && !reduceMotion ? 'smooth' : 'auto' }); }
+    catch (e) { window.scrollTo(0, 0); }
+  }
+  // opts.top: open at the top (Today cards, 'Finish', 'Edit this day'); opts.tab: the tab-bar button tapped.
+  function showTab(name, opts) {
+    opts = opts || {};
+    if (name === currentTab) { scrollTop(!opts.top); return; }
+    scrollMem[currentTab] = window.scrollY || window.pageYOffset || 0;
     var leftEdit = name === 'today' && editKey !== null;
     if (leftEdit) clearEdit(); // the Today tab always shows today
     cancelHold();
@@ -3257,14 +3329,25 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       b.classList.toggle('on', on);
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
-    window.scrollTo(0, 0);
+    // The tab's stored position: set at once (no frame at the old offset), and again once layout settles.
+    var y = opts.top ? 0 : scrollMem[name] || 0, tok = ++scrollTok;
+    window.scrollTo(0, y);
+    requestAnimationFrame(function () {
+      if (tok === scrollTok && currentTab === name && Math.abs((window.scrollY || 0) - y) > 1) window.scrollTo(0, y);
+    });
+    var ae = document.activeElement, nowhere = !ae || ae === document.body || ae === document.documentElement;
+    if (nowhere || (ae.closest && ae.closest('.view[hidden]'))) {
+      // a tab-bar tap leaves focus alone (or puts it on the tab if it was in the hidden view)
+      var to = opts.tab ? (nowhere ? null : opts.tab) : $('view-' + name).querySelector('h1');
+      if (to) { try { to.focus({ preventScroll: true }); } catch (e) {} }
+    }
     updateTopbar();
     if (leftEdit) guard('shell', renderShell); // tab dots and banners back to today
     if (name === 'workout') wakeTap(); else syncWakeLock();
   }
   $('tabbar').addEventListener('click', function (e) {
     var b = e.target.closest('.tab');
-    if (b) showTab(b.getAttribute('data-tab'));
+    if (b) showTab(b.getAttribute('data-tab'), { tab: b });
   });
 
   // ---- Top bar: the status-bar backing appears once the page scrolls, and the compact title
@@ -3306,6 +3389,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return change(function (rec) {
       rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
       rec.calories.push({ kcal: n, ts: Date.now() });
+      haptic(); // Add, or a quick add with nothing typed (never a digit)
       var total = calStatus(rec).total;
       return { text: 'Added ' + num(n) + ' kcal · ' + (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
     });
@@ -3369,7 +3453,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var s = rec.workout.sets[id] = Array.isArray(rec.workout.sets[id]) ? rec.workout.sets[id] : emptySets();
       var wasOn = isLegacyDone(s[i]);
       s[i] = wasOn ? 0 : Date.now();
-      if (!wasOn) { pop(b); return null; } // checking is reversed by tapping again: no Undo
+      if (!wasOn) { haptic(); pop(b); return null; } // checking is reversed by tapping again: no Undo
       return { text: exerciseLabel(def, ex) + ' · set ' + (i + 1) + ' unchecked', icon: 'info', undo: true };
     });
   });
@@ -3420,7 +3504,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     cancelHold();
     editKey = key;
     editMode = { finishing: !!(opts && opts.finishing), from: (opts && opts.from) || currentTab };
-    if (tab && tab !== currentTab) showTab(tab);
+    forgetScroll();
+    if (tab && tab !== currentTab) showTab(tab, { top: true });
     render();
     return true;
   }
@@ -3429,6 +3514,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (editKey === null) return;
     editKey = null;
     editMode = null;
+    forgetScroll();
     cancelHold();
   }
   function renderEditBanners() {
@@ -3444,10 +3530,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.eb-done') : null;
     if (!b || editKey === null) return;
-    var finishing = !!(editMode && editMode.finishing);
+    var finishing = !!(editMode && editMode.finishing), hadFocus = document.activeElement === b;
     clearEdit();
     if (!finishing && currentTab !== 'today') showTab('today');
     render();
+    // 'Go to today' stays on its tab and the banner goes away: focus moves to the tab's title
+    if (hadFocus && b.closest('[hidden]') && document.activeElement !== $('view-' + currentTab).querySelector('h1')) {
+      try { $('view-' + currentTab).querySelector('h1').focus({ preventScroll: true }); } catch (err) {}
+    }
   });
 
   // 'Finish yesterday' on Today, from 00:00 to 11:59, while yesterday has a task started but not done.
@@ -3591,6 +3681,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var s = rec.workout.sets[h.ex] = Array.isArray(rec.workout.sets[h.ex]) ? rec.workout.sets[h.ex] : emptySets();
       for (var i = 0; i < SETS && logged < 0; i++) if (!isLegacyDone(s[i])) { s[i] = Date.now(); logged = i; }
       if (logged < 0) return null;
+      haptic(); // outside a tap (the timer) iOS may stay silent, which is fine
       var c = holdCard();
       if (c) pop(c.sets[logged]);
       return { text: 'Hang set ' + (logged + 1) + ' logged' };
