@@ -646,6 +646,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 }
 .tab .dot .ic { width: 8px; height: 8px; stroke-width: 4; color: var(--green-ink); }
 .tab .dot.on { transform: scale(1); }
+/* a past day being edited: its dots in grey, so they never read as today's (green) */
+.editing .tab .dot { background: var(--label-2); transition: transform .35s var(--spring), background-color var(--dur-2) var(--ease); }
 /* Landscape phones: a compact bar with the label beside the icon */
 @media (orientation: landscape) and (max-height: 500px) {
   /* The bar row stays 40px (bar ≤ 62px with a 21px inset), but each tab's tap target is 44px tall:
@@ -895,8 +897,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
 /* Toast: at the top, over the title row, never covering a control; only its action button takes
    taps. While it shows (.toasting) the large title and Today's date under it fade out, so no title
-   ever peeks out from behind it; the buttons in the header stay. While a past day is edited it sits
-   under the edit eyebrow, so Done stays in reach (and never under the toast's Undo). */
+   ever peeks out from behind it, and so does Today's round 'Your data' button when the toast is wide
+   enough to reach it (.toast-covers: it would cover half of it, its Undo over the button). While a
+   past day is edited and the page is at the
+   top it sits under the edit eyebrow, so Done stays in reach (and never under the toast's Undo);
+   once the page scrolls, the eyebrow is gone under the top bar and the toast takes its usual place.
+   Its text wraps only between the ' · ' parts (.tp), never with a line starting with '·'. */
 .toast {
   position: fixed; left: 50%; z-index: 40;
   top: calc(var(--sat) + 8px);
@@ -909,12 +915,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
   color: var(--label-1);
   font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
-  transition: opacity .25s var(--ease), transform .35s var(--spring), visibility 0s linear .35s;
+  transition: opacity .25s var(--ease), transform .35s var(--spring), visibility 0s linear .35s, top .25s var(--ease);
 }
 .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
 .view > header h1, .view > header .eyebrow { transition: opacity var(--dur-2) var(--ease); }
 .toasting .view > header h1, .toasting .view > header .eyebrow { opacity: 0; }
-.editing .toast { top: calc(var(--sat) + 30px); }
+.toast-covers .data-btn:not(:focus-visible) { opacity: 0; pointer-events: none; transition-duration: var(--dur-2); }
+.editing .topbar:not(.scrolled) ~ .toast { top: calc(var(--sat) + 30px); }
+.toast-text .tp { display: inline-block; max-width: 100%; }
 .toast.warn { border-color: color-mix(in srgb, var(--amber) 30%, transparent); }
 .toast.has-act { padding-right: 6px; }
 .toast-ic { flex: none; display: grid; color: var(--green); }
@@ -1328,7 +1336,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('touchstart', function () {}, { passive: true });
   window.__touchListener = true;
 
-  var APP_VERSION = 'v12'; // must equal the suffix of VERSION in sw.js; bump both together
+  var APP_VERSION = 'v13'; // must equal the suffix of VERSION in sw.js; bump both together
 
   /* =====================================================================
      SETTINGS — what each task needs
@@ -1472,7 +1480,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
                                 next restore replaces it. Undoing swaps: the data it replaces goes
                                 here (undone: true), so the undo can be redone the same way
        'dailyTasks.probe'       written and removed once at startup to test that storage works
-     sessionStorage 'dt.reloadAt' guards against reload loops after an update.
+     sessionStorage 'dt.reloadAt' guards against reload loops after an update; 'dt.resume' keeps
+     the screen (tab, scroll, edited day) across that reload (see BOOT).
 
      Data in 'dailyTasks.v1':
        { schema: 2, firstDay: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': {
@@ -2219,7 +2228,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       actions: [['Restore backup', function (btn) { openSheet('main', btn); }],
         ['Save damaged copy', function () { exportFile(corruptRaw || '', 'daily-tasks-damaged-' + keyFor(new Date()) + '.txt', 'text/plain'); }],
         ['Dismiss', function () { hideBanner('corrupt'); }]] },
-    newer: { level: 'warn', title: 'Saved by a newer version of Daily Tasks.', body: function () { return "Changes made here won't be saved until you update."; },
+    // read-only: a tap here is not applied at all (see change()), so nothing can look saved
+    newer: { level: 'warn', title: 'Saved by a newer version of Daily Tasks.', body: function () { return "This version can't save changes. Update to keep logging."; },
       actions: [['Update', function () { updateAndReload(); }]] },
     // While writes fail the backup is built from the in-memory data, so it includes unsaved taps.
     writefail: { level: 'error', title: "Couldn't save on this iPhone. Changes will be lost when the app closes.",
@@ -2416,7 +2426,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var ic = $('toastIcon');
     ic.setAttribute('data-kind', name);
     ic.innerHTML = icon(name);
-    $('toastText').textContent = text;
+    setToastText($('toastText'), text);
     var act = $('toastAct');
     act.hidden = !opts.action;
     act.textContent = opts.action || '';
@@ -2425,6 +2435,20 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     showToastEl(true);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { hideToast(true); }, opts.duration || (opts.action ? 5000 : 2600));
+  }
+  // 'Oct 26 · +500 kcal · 600 to go': each part with its trailing ' ·' is one unbreakable piece
+  // (.tp, inline-block), so a second line starts with a whole part, never with '·' or mid-phrase.
+  // The text itself (textContent) stays exactly as given.
+  function setToastText(el, text) {
+    var parts = String(text).split(' · ');
+    el.textContent = '';
+    parts.forEach(function (t, i) {
+      if (i) el.appendChild(document.createTextNode(' '));
+      var sp = document.createElement('span');
+      sp.className = 'tp';
+      sp.textContent = i < parts.length - 1 ? t + ' ·' : t;
+      el.appendChild(sp);
+    });
   }
   function hideToast(expired) {
     clearTimeout(toastTimer);
@@ -2445,6 +2469,19 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function showToastEl(on) {
     $('toast').classList.toggle('show', on);
     document.documentElement.classList.toggle('toasting', on);
+    syncToastCover();
+  }
+  // A toast wide enough to reach Today's round 'Your data' button would cover half of it (and put
+  // its Undo over it): the button fades out and takes no taps until the toast is gone. A narrower
+  // toast leaves it alone. Checked when a toast shows, on a tab switch and on scroll (updateTopbar).
+  function syncToastCover() {
+    var root = document.documentElement, cover = false;
+    if (root.classList.contains('toasting') && currentTab === 'today' && !$('dataSheet').hasAttribute('open')) {
+      var t = $('toast'), r = t.getBoundingClientRect(), d = $('dataBtn').getBoundingClientRect();
+      var top = t.offsetTop, bottom = top + t.offsetHeight; // where it rests (not mid-slide)
+      cover = d.width > 0 && r.right > d.left && r.left < d.right && bottom > d.top && top < d.bottom;
+    }
+    if (root.classList.contains('toast-covers') !== cover) root.classList.toggle('toast-covers', cover);
   }
   function flushQueuedToast() {
     var q = toastQueued;
@@ -2472,8 +2509,10 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else el.textContent = text;
   }
 
+  // While a past day is edited, its name in front of a status or a time: 'Fri' ('Oct 20' a week back).
+  function editDayRef(key) { return editKey !== null && key === editKey ? dayRef(key, viewKey) : ''; }
   function renderPills(rec, key) {
-    var s = pillStatus(rec);
+    var s = pillStatus(rec), dayP = editDayRef(key);
     $('pillsHero').classList.toggle('approved', s.done);
     countTo('pills', $('pillsCount').firstChild, s.n);
     setText($('pillsCount').lastChild, '/' + s.total);
@@ -2485,7 +2524,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var hadFocus = document.activeElement === markBtn;
       if (markBtn.parentNode) markBtn.remove();
       var when = whenText(s.at, key);
-      setText(st, 'All taken' + (when === LATER ? ' · ' + LATER : when ? ' · done at ' + when : ''));
+      setText(st, dayP ? dayP + ' · all taken' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '')
+        : 'All taken' + (when === LATER ? ' · ' + LATER : when ? ' · done at ' + when : ''));
       if (hadFocus) { try { st.focus({ preventScroll: true }); } catch (e) {} }
     } else {
       setText(markBtn.lastChild, s.n ? 'Mark remaining ' + (s.total - s.n) + ' taken' : 'Mark all ' + s.total + ' taken');
@@ -2496,9 +2536,10 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     PILLS.forEach(function (p) {
       var at = v ? v[p.id] : all ? rec.pills : 0;
       var on = isLegacyDone(at), el = pillEls[p.id], t = on ? whenText(at, key) : '';
+      var dt = t && t !== LATER && dayP ? dayP + ' ' + t : t; // 'Fri 8:10 AM' on an edited day
       setAttr(el, 'aria-pressed', on ? 'true' : 'false');
-      setAttr(el, 'aria-label', p.name + (!on ? ', not taken' : t === LATER ? ', taken, ' + LATER : t ? ', taken at ' + t : ', taken'));
-      setText(pillTimes[p.id], t);
+      setAttr(el, 'aria-label', p.name + (!on ? ', not taken' : t === LATER ? ', taken, ' + LATER : t ? ', taken ' + (dayP ? dayP + ' ' : '') + 'at ' + t : ', taken'));
+      setText(pillTimes[p.id], dt);
     });
   }
 
@@ -2526,18 +2567,19 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     renderEntries(list, key);
   }
   // The state row: what was last added (or the goal), or the typed amount's preview.
+  // On an edited day it starts with the day: 'Fri · goal reached at 9:40 PM'.
   function calStateText(c) {
-    var when;
+    var when, dayP = editDayRef(c.key), lead = function (t) { return dayP ? dayP + ' · ' + t.charAt(0).toLowerCase() + t.slice(1) : t; };
     if (c.done) {
       when = whenText(c.at, c.key);
-      return 'Goal reached' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '') +
-        (c.total > CAL_GOAL ? ' · ' + num(c.total - CAL_GOAL) + ' over' : '');
+      return lead('Goal reached' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '') +
+        (c.total > CAL_GOAL ? ' · ' + num(c.total - CAL_GOAL) + ' over' : ''));
     }
     if (!c.total) return 'Type an amount or tap a quick add';
     var last = null;
     c.list.forEach(function (e) { if (!last || (Number(e.ts) || 0) > (Number(last.ts) || 0)) last = e; });
     when = whenText(Number(last.ts), c.key);
-    return 'Last added +' + num(Number(last.kcal)) + ' kcal' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : '');
+    return lead('Last added +' + num(Number(last.kcal)) + ' kcal' + (when === LATER ? ' · ' + LATER : when ? ' at ' + when : ''));
   }
   function renderCalPreview() {
     var c = calShown;
@@ -2758,11 +2800,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return { kind: 'none', delta: 0 };
   }
   // The Workout hero's state row: where this session comes from; once done, tomorrow's workout
-  // (a past day being edited just says 'Done').
+  // (a past day being edited just says it is done, naming the day: 'Sat · done').
   function workoutStateText(data, key, plan, s, prog) {
     var def = WORKOUTS[plan.type];
     if (s.done) {
-      if (editKey !== null) return 'Done';
+      if (editKey !== null) return (editDayRef(key) || FMT.dayShort(key)) + ' · done';
       var np = workoutPlan(data, keyFor(addDays(dateFromKey(key), 1))), tg = planTargets(np);
       return 'Tomorrow: ' + WORKOUTS[np.type].name + ' · ' + tg.reps + ' reps' + (tg.secs ? ' · ' + tg.secs + ' s hang' : '');
     }
@@ -2898,11 +2940,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       seg.classList.toggle('done', st.done);
       texts.push(valueText(t.id, st));
     });
-    var shown = state.days[shownKey()] || {};
+    // While a past day is edited the dots are that day's, drawn grey (see the CSS) and read
+    // 'Pills, approved on Sat, Oct 24', so they never pass for today's.
+    var shown = state.days[shownKey()] || {}, srText = editKey !== null ? ', approved on ' + FMT.dayShort(editKey) : ', approved';
     TASKS.forEach(function (t) {
       var on = isDone(t.id, shown), d = tabDots[t.id], sr = tabSrs[t.id];
       if (d) d.classList.toggle('on', on);
-      if (sr && sr.hidden !== !on) sr.hidden = !on; // VoiceOver: 'Pills, approved'
+      if (sr) { if (sr.hidden !== !on) sr.hidden = !on; setText(sr, srText); } // VoiceOver: 'Pills, approved'
     });
 
     countTo('today', $('count').firstChild, done);
@@ -3238,11 +3282,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function render() {
     var now = new Date();
     var today = keyFor(now);
+    var carry = null; // an amount typed for the day being edited when midnight ended edit mode
     if (viewKey !== today) {
       // first render, or the date changed: keep the start-of-day copy, then jump to today
       // (a workout in progress on screen stays on its day: see rolloverEdit)
       snapshotDaily(today);
-      if (viewKey !== null) { rolloverEdit(viewKey, today); forgetScroll(); }
+      if (viewKey !== null) { carry = rolloverEdit(viewKey, today); forgetScroll(); }
       viewKey = today;
       selectedKey = today;
       viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -3261,6 +3306,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else historyDirty = true;
     queueTopbar();
     syncWakeLock();
+    // added where it was typed, with Undo (the 'New day' toast waits for it)
+    if (carry) addCalories(carry.n, carry.key);
   }
 
   // firstDay must be a real day no later than today: otherwise use the earliest stored day.
@@ -3289,12 +3336,19 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (storageMode === 'readonly' && activeBanners.newer) return 'Not saved: update the app';
     return 'Not saved: storage is full';
   }
+  // opts.key: the day to write (default: the day on screen); opts.named: the caller chose that day
+  // on purpose (an amount typed for an edited day, added by Done or at midnight): it is written
+  // there even though it is not on screen, and the toast names it.
   function change(fn, opts) {
+    // Data saved by a newer version: this copy never writes it, so a tap is not applied either
+    // (it would look done and vanish on the next launch).
+    if (storageMode === 'readonly' && activeBanners.newer) { toast(notSavedText(), { icon: 'alert' }); return false; }
     syncFromStorage();
     var targetKey = (opts && opts.key) || shownKey();
+    var named = !!(opts && opts.named);
     var nowKey = keyFor(new Date());
     var stale = false;
-    if (editKey === null && targetKey !== nowKey) {
+    if (editKey === null && !named && targetKey !== nowKey) {
       // Midnight passed while this screen was showing.
       if (targetKey !== keyFor(addDays(dateFromKey(nowKey), -1))) { render(); toast('New day started — tap again', { icon: 'alert' }); return false; }
       // The tap was meant for yesterday. A workout in progress on screen keeps its day
@@ -3319,7 +3373,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (saved && gained.length && hapticCount > ticks) setTimeout(haptic, 110); // a 'success' double tick
     var text = null, ic = 'check';
     // a past day being edited names itself: 'Sat, Oct 24 · Pills approved' (and never celebrates)
-    var day = editKey !== null && targetKey === editKey ? FMT.dayShort(targetKey) : '';
+    var day = targetKey !== nowKey && (named || (editKey !== null && targetKey === editKey)) ? FMT.dayShort(targetKey) : '';
     var completed = before < TASKS.length && score(rec) === TASKS.length;
     // A tap that could not be stored never reads as a success (the screen keeps it until reload).
     if (!saved) { text = notSavedText(); ic = 'alert'; }
@@ -3329,7 +3383,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else if (day && completed) text = day + ' complete · streak updated';
     else if (gained.length) text = (day ? day + ' · ' : '') + taskWord(gained[0]) + ' approved';
     else if (res && res.text) { text = res.text; ic = res.icon || 'check'; }
-    if (res && res.undo && text) {
+    // 'Finish yesterday' ends once its task is approved: the screen goes back to Today (see
+    // finishDone), so the tap that did it can be undone from the toast there.
+    var finished = saved && editKey !== null && targetKey === editKey && !!(editMode && editMode.task) &&
+      gained.some(function (t) { return t.id === editMode.task; });
+    if (finished) finishDone();
+    if (((res && res.undo) || finished) && text) {
       toast(text, {
         icon: ic, action: 'Undo', snap: snap,
         onAction: function () { undoChange(snap); },
@@ -3382,14 +3441,17 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (v && e.target && v.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
 
-  // opts.top: open at the top (Today cards, 'Finish', 'Edit this day'); opts.tab: the tab-bar button tapped.
+  // opts.top: open at the top (Today cards, 'Finish', 'Edit this day'); opts.tab: the tab-bar button
+  // tapped; opts.restore: the screen as it was before an update reload (no fade, no ghost-tap
+  // guard, focus left alone).
   function showTab(name, opts) {
     opts = opts || {};
     if (name === currentTab) { scrollTop(!opts.top); return; }
-    entered = opts.tab ? { view: null, at: 0 } : { view: name, at: Date.now() };
+    entered = opts.tab || opts.restore ? { view: null, at: 0 } : { view: name, at: Date.now() };
     scrollMem[currentTab] = window.scrollY || window.pageYOffset || 0;
-    var leftEdit = name === 'today' && editKey !== null;
-    if (leftEdit) clearEdit(); // the Today tab always shows today
+    // The Today tab always shows today; another tab-bar tab ends 'Finish yesterday' and shows today
+    var leftEdit = editKey !== null && (name === 'today' || (!!opts.tab && !!(editMode && editMode.task)));
+    if (leftEdit) clearEdit();
     cancelHold();
     currentTab = name;
     if (name !== 'today') guard('tab', function () { renderTab(name); });
@@ -3402,7 +3464,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         el.hidden = true;
       } else {
         el.hidden = false;
-        if (!reduceMotion) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+        if (!reduceMotion && !opts.restore) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
       }
     });
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
@@ -3417,7 +3479,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       if (tok === scrollTok && currentTab === name && Math.abs((window.scrollY || 0) - y) > 1) window.scrollTo(0, y);
     });
     var ae = document.activeElement, nowhere = !ae || ae === document.body || ae === document.documentElement;
-    if (nowhere || (ae.closest && ae.closest('.view[hidden]'))) {
+    if (!opts.restore && (nowhere || (ae.closest && ae.closest('.view[hidden]')))) {
       // a tab-bar tap leaves focus alone (or puts it on the tab if it was in the hidden view)
       var to = opts.tab ? (nowhere ? null : opts.tab) : $('view-' + name).querySelector('h1');
       if (to) { try { to.focus({ preventScroll: true }); } catch (e) {} }
@@ -3438,11 +3500,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function updateTopbar() {
     topQueued = false;
     var view = $('view-' + currentTab), h1 = view ? view.querySelector('h1') : null;
-    var title = h1 ? h1.textContent : '';
+    // a past day being edited names itself here too, once the eyebrow has scrolled away
+    var title = h1 ? h1.textContent + (editKey !== null && currentTab !== 'today' ? ' · ' + FMT.dayShort(editKey) : '') : '';
     if (topTitleEl.textContent !== title) topTitleEl.textContent = title;
     var y = window.scrollY || window.pageYOffset || 0;
     topbarEl.classList.toggle('scrolled', y > 4);
     topbarEl.classList.toggle('titled', !!h1 && h1.getBoundingClientRect().bottom < topbarEl.getBoundingClientRect().bottom);
+    syncToastCover();
   }
   function queueTopbar() {
     if (topQueued) return;
@@ -3472,16 +3536,18 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else if (v === 'back') setBuffer(calBuffer.slice(0, -1));
     else if (calBuffer.length < 4 && !(calBuffer === '' && v === '0')) setBuffer(calBuffer + v);
   });
-  // day: a label for the toast ('Mon, Oct 26') when the add is not obviously for the screen's day.
-  function addCalories(n, day) {
+  // key: the day an amount typed for an edited day goes to when the screen is leaving that day
+  // (Done, midnight). The toast then names it briefly, to fit one line: 'Oct 26 · +500 kcal · 600 to go'.
+  function addCalories(n, key) {
     if (!n) return false;
     return change(function (rec) {
       rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
       rec.calories.push({ kcal: n, ts: Date.now() });
       haptic(); // Add, or a quick add with nothing typed (never a digit)
       var total = calStatus(rec).total;
-      return { text: (day ? day + ' · ' : '') + 'Added ' + num(n) + ' kcal · ' + (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
-    }, { task: 'calories' });
+      return { text: (key ? FMT.monthDay(key) + ' · +' + num(n) + ' kcal' : 'Added ' + num(n) + ' kcal') + ' · ' +
+        (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
+    }, key ? { task: 'calories', key: key, named: true } : { task: 'calories' });
   }
   // The typed amount is cleared only once it has really been added.
   $('calAdd').addEventListener('click', function () {
@@ -3549,9 +3615,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
   /* ---- EDIT MODE: finish or fix one of the last 7 days on the task tabs.
      While editKey is set the task tabs show that day, change() writes to it and the tab dots show
-     it. It ends on Done, the Today tab, a restore, a new day (except a workout in progress: see
-     rolloverEdit) and after 15 minutes in the background. Times written are the real time; a time
-     on another day than its record's reads 'logged later'. Nothing is stored until a change. */
+     it (grey instead of green, so they never read as today's). Each tab names the day wherever it
+     shows a status or a time: the eyebrow, the hero's state row ('Fri · all taken at 8:10 AM'),
+     the pill times and the compact title ('Pills · Fri, Oct 30'). It ends on Done, the Today tab,
+     a restore, a new day (except a workout in progress: see rolloverEdit) and after 15 minutes in
+     the background. 'Finish yesterday' (editMode.task) is about one task: it also ends on any other
+     tab-bar tab (which then shows today) and goes back to Today once that task is approved.
+     Times written are the real time; a time on another day than its record's reads 'logged
+     later'. Nothing is stored until a change. */
   var EDIT_DAYS = 7, EDIT_AWAY_MS = 15 * 60 * 1000;
   var hiddenAt = 0; // when the page was last hidden (0 while visible)
   function canEdit(key, today) {
@@ -3580,20 +3651,29 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // minutes in the background (iOS suspends the midnight timer, so a phone locked at 23:50 and
   // opened in the morning notices it then), nor more than 15 minutes after midnight, when the page
   // cannot have been running. Those open on today; 'Finish yesterday' covers the morning.
+  // An amount typed for the edited day is not dropped: it is returned ({ key, n }) and render()
+  // adds it to that day once today is on screen, as Done would have.
   function rolloverEdit(oldKey, today) {
-    if (editKey !== null) { clearEdit(); return; }
-    if (awayTooLong() || Date.now() - dateFromKey(today).getTime() > EDIT_AWAY_MS) return;
+    if (editKey !== null) {
+      var typed = parseInt(calBuffer || '0', 10) || 0, carry = typed ? { key: editKey, n: typed } : null;
+      if (carry) setBuffer('');
+      clearEdit();
+      return carry;
+    }
+    if (awayTooLong() || Date.now() - dateFromKey(today).getTime() > EDIT_AWAY_MS) return null;
     if (oldKey === keyFor(addDays(dateFromKey(today), -1)) && finishesWorkout(oldKey) && canEdit(oldKey, today)) {
       editKey = oldKey;
-      editMode = { finishing: true, from: 'workout' };
+      editMode = { finishing: true, from: 'workout', task: null };
     }
+    return null;
   }
+  // opts: { from: the tab it was entered from, task: the task 'Finish yesterday' opened, finishing }
   function enterEdit(key, tab, opts) {
     if (!canEdit(key)) return false;
     cancelHold();
     dropBuffer(); // an amount typed for today is not for this day
     editKey = key;
-    editMode = { finishing: !!(opts && opts.finishing), from: (opts && opts.from) || currentTab };
+    editMode = { finishing: !!(opts && opts.finishing), from: (opts && opts.from) || currentTab, task: (opts && opts.task) || null };
     forgetScroll();
     if (tab && tab !== currentTab) showTab(tab, { top: true });
     render();
@@ -3604,9 +3684,24 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (editKey === null) return;
     editKey = null;
     editMode = null;
+    clearTimeout(finishTimer);
     forgetScroll();
     cancelHold();
     dropBuffer(); // typed for the edited day: never carried over to today
+  }
+  // 'Finish yesterday' reached its goal: a moment later (the check and 'Approved' land first) the
+  // screen goes back to Today, where the card was, unless the user moved on in the meantime: left
+  // edit mode, un-approved the task, started typing an amount or a hang.
+  var FINISH_BACK_MS = 600, finishTimer = 0;
+  function finishDone() {
+    var key = editKey, task = editMode && editMode.task;
+    clearTimeout(finishTimer);
+    finishTimer = setTimeout(function () {
+      if (editKey !== key || !editMode || editMode.task !== task || !isDone(task, state.days[key]) || calBuffer !== '' || hold) return;
+      if (currentTab === 'today') return;
+      showTab('today');
+      render();
+    }, FINISH_BACK_MS);
   }
   function renderEditBanners() {
     var on = editKey !== null, fin = on && !!(editMode && editMode.finishing);
@@ -3625,7 +3720,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (!b || editKey === null) return;
     var finishing = !!(editMode && editMode.finishing), hadFocus = document.activeElement === b;
     var typed = parseInt(calBuffer || '0', 10) || 0;
-    if (typed && addCalories(typed, FMT.dayShort(editKey))) setBuffer('');
+    if (typed && addCalories(typed, editKey)) setBuffer('');
     clearEdit();
     if (!finishing && currentTab !== 'today') showTab('today');
     render();
@@ -3637,12 +3732,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
   // 'Finish yesterday' on Today, from 00:00 to 11:59, while yesterday has a task started but not
   // done, unless it was dismissed for that day (meta.finishDismissed). It names the goal:
-  // "Yesterday's calories: 2,800 of 3,500 kcal".
+  // "Yesterday's calories: 2,800 of 3,500 kcal", as two parts that each stay on one line
+  // (setParts), so it wraps only after the colon, never inside '2,800 of 3,500 kcal'.
   function finishLabel(id, rec) {
     var s = STATUS[id](rec);
-    if (id === 'pills') return "Yesterday's pills: " + s.n + ' of ' + s.total + ' taken';
-    if (id === 'calories') return "Yesterday's calories: " + num(s.total) + ' of ' + num(CAL_GOAL) + ' kcal';
-    return "Yesterday's " + WORKOUTS[s.type].name + ': ' + s.n + ' of ' + s.total + ' sets';
+    if (id === 'pills') return ["Yesterday's pills:", s.n + ' of ' + s.total + ' taken'];
+    if (id === 'calories') return ["Yesterday's calories:", num(s.total) + ' of ' + num(CAL_GOAL) + ' kcal'];
+    return ["Yesterday's " + WORKOUTS[s.type].name + ':', s.n + ' of ' + s.total + ' sets'];
   }
   function renderFinishCard() {
     var card = $('finishCard'), now = new Date(), task = null, rec = null;
@@ -3654,11 +3750,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (card.hidden !== !task) card.hidden = !task;
     card._key = yest;
     card._task = task;
-    setText($('finishText'), task ? finishLabel(task, rec) : '');
+    var parts = task ? finishLabel(task, rec) : [], ft = $('finishText');
+    if (ft.textContent !== parts.join(' ')) setParts(ft, parts, ' ');
   }
   $('finishBtn').addEventListener('click', function () {
     var card = $('finishCard');
-    if (card._task) enterEdit(card._key, card._task, { from: 'today' });
+    if (card._task) enterEdit(card._key, card._task, { from: 'today', task: card._task });
   });
   $('finishDismiss').addEventListener('click', function () {
     var card = $('finishCard'), hadFocus = card.contains(document.activeElement);
@@ -4127,11 +4224,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (!isObj(rec)) return [0, 0, 0, 0];
     return [pillStatus(rec).n, calStatus(rec).total, calEntries(rec).length, workoutStatus(rec).n];
   }
-  // ' · '-joined parts that wrap only between parts, never inside one
-  function setParts(el, parts) {
+  // ' · '-joined parts (or `sep`-joined) that wrap only between parts, never inside one
+  function setParts(el, parts, sep) {
     el.textContent = '';
     parts.forEach(function (t, i) {
-      if (i) el.appendChild(document.createTextNode(' · '));
+      if (i) el.appendChild(document.createTextNode(sep || ' · '));
       var sp = document.createElement('span');
       sp.className = 'nw';
       sp.textContent = t;
@@ -4144,6 +4241,18 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var f = a.slice(0, 4) === year && b.slice(0, 4) === year ? FMT.monthDay : FMT.monthDayYear;
     return a === b ? f(a) : f(a) + ' – ' + f(b);
   }
+  // What a merge would really change: days it adds, and shared days it fills in (more pills,
+  // calories, entries or sets than here). It never removes anything.
+  function mergeGain(c) {
+    var mine = {}, adds = 0, fills = 0, merged = mergeData(state, c.data);
+    loggedDays(state, keyFor(new Date())).forEach(function (k) { mine[k] = true; });
+    c.logged.forEach(function (k) {
+      if (!mine[k]) { adds++; return; }
+      var a = progressOf(state.days[k]), b = progressOf(merged.days[k]);
+      if (b.some(function (v, i) { return v > a[i]; })) fills++;
+    });
+    return { adds: adds, fills: fills };
+  }
   function showPreview() {
     var c = restoreCand, now = new Date(), todayKey = keyFor(now);
     var from = 'Backup file';
@@ -4154,21 +4263,20 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     $('pvFrom').textContent = from;
     var s = stats(c.data, now), n = c.logged.length;
     setParts($('pvBackup'), n ? ['In backup: ' + plural(n, 'day'), rangeText(c.logged), plural(s.perfect, 'perfect day'), 'best streak ' + s.best] : ['In backup: no days logged']);
-    var local = loggedDays(state, todayKey), mine = {}, adds = 0, fills = 0;
+    var local = loggedDays(state, todayKey);
     setParts($('pvLocal'), local.length ? ['This iPhone: ' + plural(local.length, 'day'), rangeText(local)] : ['This iPhone: no days logged yet']);
-    local.forEach(function (k) { mine[k] = true; });
-    // What a merge would really change: days it adds, and shared days it fills in (more pills,
-    // calories, entries or sets than here). It never removes anything.
-    var merged = mergeData(state, c.data);
-    c.logged.forEach(function (k) {
-      if (!mine[k]) { adds++; return; }
-      var a = progressOf(state.days[k]), b = progressOf(merged.days[k]);
-      if (b.some(function (v, i) { return v > a[i]; })) fills++;
-    });
+    var gain = mergeGain(c), adds = gain.adds, fills = gain.fills;
+    // A merge that changes nothing has nothing to confirm: 'Done' closes the sheet and writes
+    // nothing (the undo point of an earlier restore stays). Replace is still offered.
+    c.noop = !adds && !fills;
+    $('mergeBtn').textContent = c.noop ? 'Done' : 'Merge into this iPhone';
+    $('mergeBtn').nextElementSibling.hidden = c.noop; // its caption
+    $('cancelRestore').hidden = c.noop;
     var kept = ' Nothing here is removed.';
     $('pvMerge').textContent = adds && fills ? 'Merge adds ' + plural(adds, 'day') + ' and fills in ' + fills + '.' + kept
       : adds ? 'Merge adds ' + plural(adds, 'day') + '.' + kept
       : fills ? 'Merge fills in ' + plural(fills, 'day') + '.' + kept
+      : n === 0 ? 'Nothing new: no days logged in this backup.'
       : n === 1 ? 'Nothing new: this iPhone already has this day.'
       : 'Nothing new: this iPhone already has all ' + n + ' days.';
     var warn = [];
@@ -4188,6 +4296,16 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     hideErr('pvError');
     syncFromStorage();
     if (storageMode !== 'ok') { showErr('pvError', 'Restore needs working storage.'); return; }
+    // Nothing to merge (checked again: this iPhone may have changed since the preview): nothing
+    // is written, so 'Undo last restore' keeps pointing at the last restore that changed something.
+    if (mode === 'merge') {
+      var gain = mergeGain(c);
+      if (!gain.adds && !gain.fills) {
+        closeSheet();
+        if (!c.noop) toast('Nothing new to restore', { icon: 'info' });
+        return;
+      }
+    }
     // First keep the current data exactly as stored, or restore nothing. The snapshot of the
     // previous restore is remembered, so a restore that then fails can put it back.
     var prevSnap = null;
@@ -4219,7 +4337,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     // Undoing this restore brings the banner back (see undoRestore).
     corruptHiddenByRestore = !!activeBanners.corrupt;
     hideBanner('corrupt');
-    setMeta({ lastRestoreAt: Date.now() });
+    // The backup it came from is a backup of this data: the reminder counts from when it was
+    // made ('No backup yet' right after restoring from one would be untrue). Never moved back,
+    // nor to a time in the future.
+    var patch = { lastRestoreAt: Date.now() }, made = c.exportedAt ? c.exportedAt.getTime() : 0;
+    if (isFinite(made) && made > 0 && made <= Date.now() && made > lastBackupAt()) patch.lastBackupAt = made;
+    setMeta(patch);
     clearEdit();
     cancelHold();
     undoSnap = null;
@@ -4341,6 +4464,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
      BOOT
      Updates: sw.js installs a new version in the background and takes over at once; the page
      reloads into it only when nobody is using the screen, otherwise it says "Update ready".
+     Nobody is using it: nothing typed, no past day open, no hang timer, no Undo pending, no sheet
+     and no workout under way on the Workout tab (resting between sets with the screen locked).
+     The reload comes back to the same screen: reloadOnce keeps the tab, its scroll position and
+     a past day being edited in sessionStorage 'dt.resume', and boot shows them again before the
+     first paint (only within RESUME_MS: a later launch opens on Today as usual).
      ===================================================================== */
   var hasSW = 'serviceWorker' in navigator && location.protocol !== 'file:';
   var reg = null;
@@ -4350,14 +4478,51 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   var lastUpdateCheck = Date.now();
 
   function isIdle() {
-    return calBuffer === '' && editKey === null && !hold && !undoSnap && !document.querySelector('dialog[open]');
+    return calBuffer === '' && editKey === null && !hold && !undoSnap && !document.querySelector('dialog[open]') &&
+      !(currentTab === 'workout' && workoutInProgress(state.days[shownKey()]));
   }
+  var RESUME_KEY = 'dt.resume', RESUME_MS = 30 * 1000;
   function reloadOnce() {
     var now = Date.now(), last = 0;
     try { last = Number(sessionStorage.getItem('dt.reloadAt')) || 0; } catch (e) {}
     if (last && now - last >= 0 && now - last < 10000) return; // never loop
     try { sessionStorage.setItem('dt.reloadAt', String(now)); } catch (e) {}
+    try {
+      sessionStorage.setItem(RESUME_KEY, JSON.stringify({ at: now, tab: currentTab, y: Math.round(window.scrollY || window.pageYOffset || 0),
+        edit: editKey, mode: editMode }));
+    } catch (e) {}
     location.reload();
+  }
+  // The screen saved by reloadOnce, read once (and removed); null when there is none, it is too
+  // old or it does not name a view.
+  function takeResume() {
+    var r = null;
+    try {
+      var text = sessionStorage.getItem(RESUME_KEY);
+      if (text === null) return null;
+      sessionStorage.removeItem(RESUME_KEY);
+      r = JSON.parse(text);
+    } catch (e) { return null; }
+    if (!isObj(r) || VIEWS.indexOf(r.tab) === -1) return null;
+    var age = Math.abs(Date.now() - Number(r.at)); // either way: the clock may be set back meanwhile
+    return age < RESUME_MS ? r : null;
+  }
+  // Before the first render: the past day that was being edited, if it still can be.
+  function resumeEdit(r) {
+    var m = isObj(r.mode) ? r.mode : {};
+    if (r.tab === 'today' || !isDayKey(r.edit) || !canEdit(r.edit, keyFor(new Date()))) return;
+    editKey = r.edit;
+    editMode = { finishing: !!m.finishing, from: VIEWS.indexOf(m.from) !== -1 ? m.from : 'today',
+      task: TASKS.some(function (t) { return t.id === m.task; }) ? m.task : null };
+  }
+  // After it: the tab and its scroll position (the browser's own restoration is turned off, so it
+  // cannot put Today's offset back over it).
+  function resumeScreen(r) {
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+    var y = Math.max(0, Number(r.y) || 0);
+    if (r.tab !== 'today') { scrollMem[r.tab] = y; showTab(r.tab, { restore: true }); return; }
+    window.scrollTo(0, y);
+    requestAnimationFrame(function () { if (currentTab === 'today' && Math.abs((window.scrollY || 0) - y) > 1) window.scrollTo(0, y); });
   }
   function checkForUpdate() {
     lastUpdateCheck = Date.now();
@@ -4408,9 +4573,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     setTimeout(checkForUpdate, 10 * 1000);
   }
 
-  // ---- Start
+  // ---- Start (back on the same screen after an update reload)
   loadState();
+  var resume = takeResume();
+  if (resume) resumeEdit(resume);
   render();
+  if (resume) resumeScreen(resume);
   scheduleMidnight();
 
   // Ask the browser not to evict this site's storage (no UI either way).

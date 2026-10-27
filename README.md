@@ -8,13 +8,13 @@ A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calori
   - **Workout**: Workout A and B alternate daily, 2 sets per exercise. Reps start at 8 (dead hangs at 20 s) and go up by 1 rep (5 s) each time you finish that workout. The next set is outlined, and dead hangs have a hold timer (5 s to get ready, then the countdown). The screen stays awake during a workout where iOS allows it.
 - Each task tab fits on one screen, even on an iPhone SE.
 - Each tab remembers where you scrolled; tap the active tab again to jump to the top. Checking something off gives a light haptic tick on iPhone (iOS 18 and later), and a double tick when it approves the task. Works with VoiceOver and a keyboard (tabs read "Pills, approved" once done).
-- **Finish or fix the last 7 days**: tap a day in History → **Edit this day**, or **Finish** on the "Yesterday: …" card that shows on Today until noon. A workout still going at midnight stays on its day ("Finishing Mon, Oct 26") until you tap **Go to today**.
+- **Finish or fix the last 7 days**: tap a day in History → **Edit this day**, or **Finish** on the "Yesterday: …" card that shows on Today until noon (it goes back to Today once that task is approved, and any other tab shows today). A workout still going at midnight stays on its day ("Finishing Mon, Oct 26") until you tap **Go to today**.
 - Settings live at the top of the script in `index.html` (`PILLS`, `CAL_GOAL`, `WORKOUTS`, `REPS_START`, …).
 - Today shows N/3 approved, one bar segment per task (partly filled as you go, green once approved), a ring on each task card and what's left (e.g. "Missing: Iron, Magnesium"). From 8 PM it also says how many hours are left. At 3/3 the hero says "All done for today!".
 - Each calendar day (phone's local time) is stored separately. A new day starts unchecked, even if the app stays open past midnight.
 - **History** covers the last 365 days: streaks, perfect days, a month calendar (swipe or use the arrows to go back 12 months; days before you started are greyed out), tap any tracked day to see what was done and when, and per-task completion rates with each task's current and best streak.
 - Saved in the browser's local storage (keys starting with `dailyTasks.` only; the Money app's data is never touched). A copy is kept at the start of each day, and data that can't be read is set aside and recovered from that copy instead of being overwritten.
-- Works offline via a service worker. Launch never waits on the network; a new version installs in the background and the app reloads into it when it's not in use (otherwise it shows "Update ready").
+- Works offline via a service worker. Launch never waits on the network; a new version installs in the background and the app reloads into it when it's not in use, on the same tab and scroll position (otherwise, e.g. mid-workout, it shows "Update ready" and waits).
 
 ## Files
 
