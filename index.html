@@ -141,6 +141,8 @@ button:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+/* Visually hidden, still read by VoiceOver */
+.sr { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
 /* The page scrolls under the status bar (top bar) and the tab bar; each inset is counted once. */
 .app {
@@ -267,11 +269,13 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
 }
 .all-done .hero { border-color: var(--green-a2); box-shadow: var(--shadow), 0 0 0 1px rgba(50, 210, 122, .08), 0 10px 40px rgba(50, 210, 122, .12); }
 .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
-.hero-count { display: flex; align-items: baseline; gap: 10px; }
+.hero-count { display: flex; align-items: baseline; gap: 8px; }
 .hero-count .big { font-size: var(--fs-display); line-height: 46px; font-weight: 700; letter-spacing: -.02em; }
 .hero-count .big small { font-size: var(--fs-title1); color: var(--label-2); font-weight: 600; letter-spacing: -.015em; }
 .hero-label { color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
 .hero-sub { margin: 6px 0 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-1); }
+.hero-sub .left { color: var(--amber); }
+/* the streak chip: a quiet invitation at 0, orange from the first perfect day */
 .streak {
   flex: none;
   display: inline-flex;
@@ -281,26 +285,55 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   border-radius: var(--r-pill);
   background: var(--card-hi);
   border: 1px solid var(--line);
+  color: var(--label-2);
   font-size: var(--fs-subhead);
   line-height: 20px;
   font-weight: 600;
   white-space: nowrap;
 }
-.streak .ic { width: 16px; height: 16px; color: var(--faint); }
+.streak .ic { width: 16px; height: 16px; color: var(--label-2); }
 .streak.hot { background: color-mix(in srgb, var(--orange) 14%, transparent); border-color: color-mix(in srgb, var(--orange) 30%, transparent); color: var(--orange); }
 .streak.hot .ic { color: var(--orange); fill: rgba(255, 143, 87, .3); }
+.streak.pulse { animation: chipPulse 400ms var(--spring); }
+@keyframes chipPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+/* One segment per task, in card order. Partial progress fills in the task's accent; approved is green. */
 .segments { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.seg { height: 10px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); overflow: hidden; }
+.seg {
+  position: relative;
+  height: 8px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .08); overflow: hidden;
+  transition: box-shadow 300ms var(--ease);
+}
 .seg i {
   display: block; height: 100%; width: 100%;
-  background: linear-gradient(90deg, #22b866, var(--green) 60%, #5fe39a);
+  background-color: color-mix(in srgb, var(--accent, var(--green)) 85%, transparent);
   border-radius: inherit;
-  transform: scaleX(0);
+  transform: scaleX(var(--p, 0));
   transform-origin: left;
-  transition: transform var(--dur-4) var(--ease);
+  transition: transform var(--dur-4) var(--ease), background-color 300ms var(--ease);
 }
-.seg.on i { transform: scaleX(1); }
-.all-done .seg i { box-shadow: 0 0 12px rgba(50, 210, 122, .6); }
+.seg.done { box-shadow: 0 0 12px rgba(50, 210, 122, .6); }
+.seg.done i { background-color: var(--green); background-image: linear-gradient(90deg, #22b866, var(--green) 60%, #5fe39a); }
+/* The 3/3 shimmer: each segment's overlay spans the whole row (offset by its column), so one
+   highlight sweeps across all three while each segment clips it to its own shape. */
+.seg::after {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: calc(300% + 12px);
+  background: linear-gradient(90deg, transparent 40%, rgba(255, 255, 255, .55) 50%, transparent 60%) no-repeat;
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.seg:nth-child(2)::after { left: calc(-100% - 6px); }
+.seg:nth-child(3)::after { left: calc(-200% - 12px); }
+.segments.shimmer .seg::after { animation: shimmer 900ms cubic-bezier(.4, 0, .2, 1); }
+@keyframes shimmer { from { opacity: 1; background-position: 100% 0; } to { opacity: 1; background-position: 0 0; } }
+/* 3/3: the sub-line becomes this row, inside the hero */
+.celebrate { display: flex; align-items: center; gap: 14px; animation: rise .55s var(--spring); }
+.celebrate-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.celebrate-text strong { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
+.celebrate-text span { color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
 
 /* ---------- Tasks ---------- */
 .tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
@@ -328,7 +361,7 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
 .task.pop .tile { animation: tilt .42s var(--spring); }
 .task-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .task-name { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; transition: color .35s var(--ease); }
-.task-sub { font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); transition: color .35s var(--ease); }
+.task-sub { font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); transition: color .35s var(--ease); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .check {
   position: relative;
   flex: none;
@@ -347,8 +380,8 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   opacity: 0;
   pointer-events: none;
 }
-.check svg { width: 18px; height: 18px; }
-.check path {
+.check .ck { width: 18px; height: 18px; }
+.check .ck path {
   fill: none;
   stroke: var(--green-ink);
   stroke-width: 3.2;
@@ -358,6 +391,7 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   stroke-dashoffset: 24;
   transition: stroke-dashoffset .32s var(--ease) .06s;
 }
+/* Pill rows (toggle buttons) */
 .task[aria-pressed="true"] { background: linear-gradient(180deg, rgba(50, 210, 122, .07), rgba(50, 210, 122, .03)), var(--card); border-color: var(--green-a2); }
 .task[aria-pressed="true"] .task-name { color: rgba(244, 245, 246, .72); }
 .task[aria-pressed="true"] .task-sub { color: var(--green); }
@@ -366,54 +400,79 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
 .task[aria-pressed="true"]:active { background-color: var(--card-press); }
 .task.pop .check { animation: pop .42s var(--spring); }
 .task.pop .check::after { animation: ripple .6s var(--ease); }
+/* Today cards (links to their tab): a progress ring in the task's accent. Approved turns the arc
+   green and draws a solid green disc and check on top. */
+.task.done { background: linear-gradient(var(--green-a1), var(--green-a1)), var(--card); border-color: var(--green-a2); }
+.task.done .task-sub { color: var(--green); }
+.task.done:active { background-color: var(--card-press); }
+.check.ring { width: 30px; height: 30px; border: 0; background: none; }
+.check.ring::after { inset: 0; }
+.ring-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ring-svg circle { fill: none; stroke-width: 3; }
+.ring-track { stroke: rgba(255, 255, 255, .09); }
+.ring-arc {
+  stroke: var(--accent, var(--green)); stroke-linecap: round;
+  stroke-dasharray: 81.68; stroke-dashoffset: 81.68;
+  transition: stroke-dashoffset 600ms var(--ease), stroke .3s var(--ease), opacity .2s var(--ease);
+}
+.ring-arc.zero { opacity: 0; }
+.task.done .ring-arc { stroke: var(--green); }
+.ring-disc {
+  position: absolute; inset: 1px;
+  display: grid; place-items: center;
+  border-radius: 50%; background: var(--green);
+  opacity: 0; transform: scale(.5);
+  transition: opacity .2s var(--ease), transform .42s var(--spring);
+}
+.ring-disc .ck { width: 16px; height: 16px; }
+.task.done .ring-disc { opacity: 1; transform: none; }
+.task.done .ring-disc path { stroke-dashoffset: 0; }
+.task.pop .check.ring { animation: none; }
+.task.pop .ring-disc { animation: pop .42s var(--spring); }
+.task.pop .ring-disc path { animation: draw .32s var(--ease) .06s backwards; }
 @keyframes pop { 0% { transform: scale(.85); } 55% { transform: scale(1.15); } 100% { transform: scale(1); } }
 @keyframes ripple { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
 @keyframes tilt { 0%, 100% { transform: none; } 40% { transform: rotate(-8deg) scale(1.06); } }
+@keyframes draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 
 /* ---------- Completion ---------- */
-.done-note {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border-radius: var(--r-lg);
-  background: linear-gradient(135deg, rgba(50, 210, 122, .18), rgba(50, 210, 122, .06));
-  border: 1px solid var(--green-a2);
-  animation: rise .55s var(--spring);
-}
 .done-badge { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--green); color: var(--green-ink); box-shadow: 0 0 0 6px rgba(50, 210, 122, .14); }
 .done-badge .ic { stroke-width: 3; }
-.done-note strong { display: block; font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
-/* on the green tint: --label-1, never --label-2 */
-.done-note span { color: var(--label-1); font-size: var(--fs-subhead); line-height: 20px; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
 #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 
 /* ---------- History: 32px below the content above it (12px + the 20px view gap) ---------- */
 .history { display: flex; flex-direction: column; margin-top: var(--sp-3); }
 .history > * + * { margin-top: var(--sp-3); }
-.history > .section-head + * { margin-top: var(--sp-2); }
+.history > .section-head + *, .history > .section-head + [hidden] + * { margin-top: var(--sp-2); }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; padding-inline: 4px; }
 h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700; letter-spacing: -.02em; }
 .section-head span { color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+.first-run { margin: 0; padding: 0 4px; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
 
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
-/* 12px sides (not 16) so 'Perfect days' and a 3-digit value fit three tiles across a 375pt screen */
-.stat { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.stat .tile { width: 32px; height: 32px; border-radius: var(--r-sm); margin-bottom: 4px; }
-.stat .tile .ic { width: 17px; height: 17px; }
-.stat b { font-size: var(--fs-title1); line-height: 34px; font-weight: 700; letter-spacing: -.015em; white-space: nowrap; }
-.stat b small { font-size: var(--fs-subhead); color: var(--label-2); font-weight: 600; margin-left: 2px; letter-spacing: 0; }
-.stat span { color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; }
+/* Stats: one card, three columns divided by 1px rules. Columns are equal unless a label needs more
+   (1fr keeps each column at least as wide as its unwrapped content). */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 16px; }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; white-space: nowrap; }
+.stat:first-child { padding-left: 0; }
+.stat:last-child { padding-right: 0; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat b { font-size: var(--fs-title1); line-height: 34px; font-weight: 700; letter-spacing: -.015em; }
+.stat b small { font-size: var(--fs-subhead); color: var(--label-2); font-weight: 600; margin-left: 3px; letter-spacing: 0; }
+.stat-label { display: flex; align-items: center; gap: 4px; color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; }
+.stat-label .glyph { display: grid; color: var(--accent); }
+.stat-label .ic { width: 13px; height: 13px; stroke-width: 2.4; }
 
-.calendar { padding: 16px; }
-.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-3); }
-.cal-title { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; padding-left: 4px; }
-.cal-nav { display: flex; gap: var(--sp-2); }
+/* Calendar: always 6 rows of 44px, so its height never changes from month to month. Each day is a
+   button filling its cell; the 38px circle is its ::before (under the numeral). */
+.calendar { padding: 12px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+.cal-title { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; padding-left: 6px; }
+.cal-nav { display: flex; gap: var(--sp-1); }
 .icon-btn {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   display: grid; place-items: center;
-  border-radius: var(--r-md);
+  border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--card-hi);
   cursor: pointer;
@@ -421,54 +480,67 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 }
 .icon-btn:disabled { opacity: .3; cursor: default; }
 .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.weekdays { margin-bottom: 6px; }
+.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 2px; }
+.weekdays { margin-bottom: 4px; }
 .weekdays span { text-align: center; font-size: var(--fs-caption2); line-height: 13px; font-weight: 600; letter-spacing: .06em; color: var(--label-2); text-transform: uppercase; }
-.grid { touch-action: pan-y; }
+.grid { grid-auto-rows: 44px; row-gap: 2px; touch-action: pan-y; }
 .grid.slide { animation: fadeSlide .3s var(--ease); }
 @keyframes fadeSlide { from { opacity: 0; transform: translateX(var(--dx, 0)); } to { opacity: 1; transform: none; } }
 .cell {
   position: relative;
-  aspect-ratio: 1;
-  max-width: 100%;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  font-family: var(--font-num);
-  font-size: var(--fs-subhead);
-  line-height: 20px;
-  font-weight: 600;
+  isolation: isolate; /* the circle (z-index -1) paints under the numeral */
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  margin: 0; padding: 0; border: 0; border-radius: 0;
+  background: none;
+  font: 500 var(--fs-subhead)/20px var(--font-num);
   font-variant-numeric: tabular-nums;
-  color: var(--faint); /* only future and out-of-range days, which are disabled */
-  padding: 0;
+  color: var(--faint);
   cursor: default;
-  transition: transform .15s var(--ease), box-shadow .2s var(--ease);
+  transition: transform .15s var(--ease);
 }
-.cell.tracked { cursor: pointer; color: #9aa0a6; background: var(--cal-0); }
+.cell::before {
+  content: "";
+  position: absolute; left: 50%; top: 50%; z-index: -1;
+  width: 38px; height: 38px; margin: -19px 0 0 -19px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+/* untracked (before the first day, nothing logged): disabled, no fill, --faint numeral */
+.cell.off { opacity: .5; } /* future and out-of-range days */
+.cell.tracked { cursor: pointer; color: #9aa0a6; }
+.cell.tracked::before { background: var(--cal-0); }
 .cell.tracked:active { transform: scale(.92); }
-.cell.l1 { background: var(--cal-1); color: #cfeedd; }
-.cell.l2 { background: var(--cal-2); color: #fff; }
-.cell.l3 { background: var(--cal-3); color: var(--green-ink); font-weight: 700; }
+.cell.l1 { color: #cfeedd; }
+.cell.l1::before { background: var(--cal-1); }
+.cell.l2 { color: #fff; }
+.cell.l2::before { background: var(--cal-2); }
+.cell.l3 { color: var(--green-ink); font-weight: 700; }
+.cell.l3::before { background: var(--cal-3); }
+.cell.today { color: var(--green); font-weight: 700; }
+.cell.today.l2 { color: #fff; } /* green on the 50% fill would be 2.8:1 */
+.cell.today.l3 { color: var(--green-ink); }
 .cell.today::after {
   content: "";
-  position: absolute;
-  bottom: 5px;
-  width: 4px; height: 4px;
+  position: absolute; left: 50%; top: calc(50% + 11px);
+  width: 4px; height: 4px; margin-left: -2px;
   border-radius: 50%;
   background: currentColor;
 }
-.cell.selected { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--label-1); }
-.legend { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: var(--sp-3); color: var(--label-2); font-size: var(--fs-caption); line-height: 16px; }
-.legend i { width: 12px; height: 12px; border-radius: 4px; background: var(--cal-0); }
-.legend i:nth-of-type(2) { background: var(--cal-1); }
-.legend i:nth-of-type(3) { background: var(--cal-2); }
-.legend i:nth-of-type(4) { background: var(--cal-3); }
+.cell.selected::before { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px rgba(255, 255, 255, .9); }
+.cell:focus-visible { outline: none; }
+.cell:focus-visible::before { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--green); }
+.legend { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: var(--sp-2); padding-right: 6px; color: var(--label-2); font-size: var(--fs-caption); line-height: 16px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--cal-0); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.legend i:nth-of-type(2) { background: var(--cal-1); box-shadow: none; }
+.legend i:nth-of-type(3) { background: var(--cal-2); box-shadow: none; }
+.legend i:nth-of-type(4) { background: var(--cal-3); box-shadow: none; }
 .legend span:first-child { margin-right: 3px; }
 .legend span:last-child { margin-left: 3px; }
 
-.detail { padding: 16px; display: flex; flex-direction: column; gap: var(--sp-3); }
+/* The selected day, inside the calendar card under a hairline */
+.detail { margin-top: 14px; padding: 14px 4px 2px; border-top: .5px solid var(--hairline); display: flex; flex-direction: column; gap: var(--sp-3); }
 .detail-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .detail-head strong { font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
 .pill {
@@ -482,23 +554,33 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   border: 1px solid var(--line);
 }
 .pill.full { background: var(--green); color: var(--green-ink); border-color: var(--green); }
-.detail-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
-.detail-rows li { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-subhead); line-height: 20px; }
-.detail-rows .tile, .rate .tile { width: 32px; height: 32px; border-radius: var(--r-sm); }
-.detail-rows .tile .ic, .rate .tile .ic { width: 17px; height: 17px; }
-.detail-rows .n { flex: 1; min-width: 0; }
-.detail-rows .s { display: inline-flex; align-items: center; gap: 4px; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
-.detail-rows .s .ic { width: 14px; height: 14px; stroke-width: 3; }
+.detail-body { position: relative; }
+.detail-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.detail-rows li { display: flex; align-items: center; gap: var(--sp-3); min-height: 28px; font-size: var(--fs-subhead); line-height: 20px; }
+.detail-rows .tile { width: 28px; height: 28px; border-radius: var(--r-sm); }
+.detail-rows .tile .ic { width: 15px; height: 15px; }
+.detail-rows .n { flex: none; }
+/* inline, right-aligned text: a long line ('B · 14 reps · 50 s · logged later') wraps with its check */
+.detail-rows .s { flex: 1; min-width: 0; text-align: right; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
+.detail-rows .pt { white-space: nowrap; }
+.detail-rows .s .ic { display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; stroke-width: 3; }
 .detail-rows .s.ok { color: var(--green); font-weight: 600; }
 .detail-rows li.off .tile { filter: grayscale(1); opacity: .4; }
+/* a new day's rows crossfade with the old ones (an aria-hidden copy fading out on top) */
+.detail-rows.xin { animation: fadeIn .2s var(--ease); }
+.detail-rows.xout { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; animation: fadeOut .2s var(--ease) forwards; }
 
 .rates { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .rates h3 { margin: 0; font-size: var(--fs-footnote); line-height: 18px; color: var(--label-2); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.rate { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; column-gap: var(--sp-3); row-gap: 6px; }
-.rate .tile { grid-row: span 2; }
+.rate { display: flex; align-items: center; gap: var(--sp-3); }
+.rate .tile { width: 32px; height: 32px; border-radius: var(--r-sm); }
+.rate .tile .ic { width: 17px; height: 17px; }
+.rate-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.rate-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
 .rate .n { font-size: var(--fs-subhead); line-height: 20px; }
 .rate .p { font-size: var(--fs-subhead); line-height: 20px; font-weight: 700; text-align: right; }
-.rate .track { grid-column: 2 / 4; height: 6px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .07); overflow: hidden; }
+.rate .st { margin-top: -6px; color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rate .track { height: 6px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .07); overflow: hidden; }
 .rate .track i { display: block; height: 100%; background: var(--accent, var(--green)); border-radius: inherit; transition: width var(--dur-4) var(--ease); }
 #rates { display: flex; flex-direction: column; gap: 14px; }
 .muted-note { margin: 0; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
@@ -583,7 +665,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .task.compact .tile { width: 44px; height: 44px; border-radius: var(--r-md); }
 .task.compact .tile .ic { width: 22px; height: 22px; }
 .task .chev { flex: none; color: var(--label-2); }
-.task .chev .ic { width: 18px; height: 18px; }
+.task .chev .ic { width: 14px; height: 14px; }
 
 /* Calories calculator */
 .calc { padding: 12px; display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -849,6 +931,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   .sheet.closing::backdrop { animation: fadeOut .15s ease forwards; }
   /* the month change keeps its 300ms, as a dissolve without the slide */
   .grid.slide { animation: fadeIn .3s var(--ease) !important; }
+  /* the History detail keeps its 200ms crossfade (opacity only) */
+  .detail-rows.xin { animation: fadeIn .2s var(--ease) !important; }
+  .detail-rows.xout { animation: fadeOut .2s var(--ease) forwards !important; }
 }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 </style>
@@ -875,27 +960,26 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   </header>
 
   <section class="card hero" aria-label="Today's progress">
-    <div class="hero-top">
-      <div>
+    <div>
+      <div class="hero-top">
         <div class="hero-count">
-          <span class="big num" id="count">0<small>/3</small></span>
-          <span class="hero-label" id="countLabel">tasks completed</span>
+          <span class="big num" id="count"><span class="cu">0</span><small>/3</small></span>
+          <span class="hero-label">done</span>
         </div>
-        <p class="hero-sub" id="heroSub"></p>
+        <span class="streak" id="streakChip"><span data-icon="flame"></span><span id="streakText" aria-hidden="true"></span><span class="sr" id="streakSr"></span></span>
       </div>
-      <span class="streak" id="streakChip"><span data-icon="flame"></span><span id="streakText"></span></span>
+      <p class="hero-sub" id="heroSub"></p>
+    </div>
+    <div class="celebrate" id="celebrate" role="status" hidden>
+      <span class="done-badge" data-icon="check"></span>
+      <div class="celebrate-text"><strong>All done for today!</strong><span>Great work. See you tomorrow.</span></div>
     </div>
     <div class="segments" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" id="bar">
-      <div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div>
+      <div class="seg" style="--accent: var(--violet)"><i></i></div><div class="seg" style="--accent: var(--amber)"><i></i></div><div class="seg" style="--accent: var(--blue)"><i></i></div>
     </div>
   </section>
 
   <ul class="tasks" id="tasks"></ul>
-
-  <div class="done-note" id="doneNote" role="status" hidden>
-    <span class="done-badge" data-icon="check"></span>
-    <div><strong>All done for today!</strong><span>Great work. See you tomorrow.</span></div>
-  </div>
 
   <div class="card reminder" id="reminder" hidden>
     <span class="reminder-dot" aria-hidden="true"></span>
@@ -909,31 +993,31 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       <span>Last 365 days</span>
     </div>
 
-    <div class="stats">
-      <div class="card stat"><span class="tile" style="--accent: var(--orange)" data-icon="flame"></span><b class="num" id="statStreak">0</b><span>Streak</span></div>
-      <div class="card stat"><span class="tile" style="--accent: var(--amber)" data-icon="trophy"></span><b class="num" id="statBest">0</b><span>Best streak</span></div>
-      <div class="card stat"><span class="tile" style="--accent: var(--green)" data-icon="star"></span><b class="num" id="statPerfect">0</b><span>Perfect days</span></div>
+    <div class="card stats" id="stats">
+      <div class="stat" style="--accent: var(--orange)"><b class="num" id="statStreak">0</b><span class="stat-label"><span class="glyph" data-icon="flame"></span>Streak</span></div>
+      <div class="stat" style="--accent: var(--amber)"><b class="num" id="statBest">0</b><span class="stat-label"><span class="glyph" data-icon="trophy"></span>Best streak</span></div>
+      <div class="stat" style="--accent: var(--green)"><b class="num" id="statPerfect">0</b><span class="stat-label"><span class="glyph" data-icon="star"></span>Perfect days</span></div>
     </div>
+    <p class="first-run" id="firstRun" hidden>Your history fills in as you complete days.</p>
 
-    <div class="card calendar">
+    <div class="card calendar" id="calendar">
       <div class="cal-head">
-        <span class="cal-title" id="calTitle"></span>
+        <span class="cal-title" id="calTitle" aria-live="polite"></span>
         <div class="cal-nav">
           <button class="icon-btn" id="prevMonth" type="button" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
           <button class="icon-btn" id="nextMonth" type="button" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
       </div>
       <div class="weekdays" id="weekdays" aria-hidden="true"></div>
-      <div class="grid" id="grid"></div>
+      <div class="grid" id="grid" role="group" aria-labelledby="calTitle"></div>
       <div class="legend" aria-hidden="true"><span>0</span><i></i><i></i><i></i><i></i><span>3 tasks</span></div>
+      <div class="detail" id="detail" aria-live="polite">
+        <div class="detail-head"><strong id="detailTitle"></strong><span class="pill num" id="detailScore"></span></div>
+        <div class="detail-body"><ul class="detail-rows" id="detailRows"></ul></div>
+      </div>
     </div>
 
-    <div class="card detail" id="detail" aria-live="polite">
-      <div class="detail-head"><strong id="detailTitle"></strong><span class="pill num" id="detailScore"></span></div>
-      <ul class="detail-rows" id="detailRows"></ul>
-    </div>
-
-    <div class="card rates">
+    <div class="card rates" id="ratesCard">
       <h3 id="ratesTitle">Completion rate</h3>
       <div id="rates"></div>
     </div>
@@ -945,7 +1029,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   <header><p class="eyebrow date-label"></p><h1>Pills</h1></header>
   <section class="card hero tab-hero" id="pillsHero" style="--accent: var(--violet)">
     <div class="hero-top">
-      <div class="big-line"><span class="big num" id="pillsCount"></span><span class="unit">taken</span></div>
+      <div class="big-line"><span class="big num" id="pillsCount"><span class="cu"></span><small></small></span><span class="unit">taken</span></div>
       <span class="chip" id="pillsChip"></span>
     </div>
     <div class="bar"><i id="pillsBar"></i></div>
@@ -991,7 +1075,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   <section class="card hero tab-hero" id="woHero" style="--accent: var(--blue)">
     <div class="hero-top">
       <div>
-        <div class="big-line"><span class="big num" id="woCount"></span><span class="unit">sets done</span></div>
+        <div class="big-line"><span class="big num" id="woCount"><span class="cu"></span><small></small></span><span class="unit">sets done</span></div>
         <p class="hero-sub" id="woSub"></p>
       </div>
       <span class="chip" id="woChip"></span>
@@ -1013,7 +1097,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   </div>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-ic" id="toastIcon" aria-hidden="true"></span><span class="toast-text" id="toastText"></span><button class="toast-act" id="toastAct" type="button" hidden></button></div>
-<canvas id="confetti" aria-hidden="true"></canvas>
+<canvas id="confetti" width="0" height="0" aria-hidden="true"></canvas>
 
 <dialog id="dataSheet" class="sheet" aria-labelledby="sheetTitle">
  <div class="sheet-body">
@@ -1089,7 +1173,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('touchstart', function () {}, { passive: true });
   window.__touchListener = true;
 
-  var APP_VERSION = 'v8'; // must equal the suffix of VERSION in sw.js; bump both together
+  var APP_VERSION = 'v9'; // must equal the suffix of VERSION in sw.js; bump both together
 
   /* =====================================================================
      SETTINGS — what each task needs
@@ -1152,7 +1236,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   };
   // The animated check inside .check circles (task cards and pill rows). Every other check
   // mark is icon('check'); the text glyph is never used.
-  var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var CHECK_SVG = '<svg class="ck" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   function icon(name) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
   function tile(t) { return '<span class="tile" style="--accent: ' + t.color + '" aria-hidden="true">' + icon(t.icon) + '</span>'; }
 
@@ -1160,6 +1244,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function isObj(x) { return x !== null && typeof x === 'object' && !Array.isArray(x); }
   var $ = function (id) { return document.getElementById(id); };
+  // Write only what changed, so live regions stay quiet and focus and animations survive renders.
+  function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+  function setAttr(el, name, v) {
+    if (v === null) { if (el.hasAttribute(name)) el.removeAttribute(name); }
+    else if (el.getAttribute(name) !== v) el.setAttribute(name, v);
+  }
 
   /* =====================================================================
      DATES AND FORMATTING — always the phone's local calendar day, always English
@@ -1712,8 +1802,18 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var today = startOfDay(now);
     var start = trackStart(data, today);
     var perfect = 0, best = 0, run = 0, days = 0;
-    var perTask = {};
-    TASKS.forEach(function (t) { perTask[t.id] = 0; });
+    // Per task: days done (rates), and its run and best run with the overall streak's rule (today
+    // extends a run once done, and never breaks one while still open).
+    var perTask = {}, runs = {}, bests = {};
+    TASKS.forEach(function (t) { perTask[t.id] = 0; runs[t.id] = 0; bests[t.id] = 0; });
+    var tick = function (rec, isToday, counted) {
+      TASKS.forEach(function (t) {
+        var ok = isDone(t.id, rec);
+        if (ok) { runs[t.id]++; if (runs[t.id] > bests[t.id]) bests[t.id] = runs[t.id]; }
+        else if (!isToday) runs[t.id] = 0;
+        if (ok && counted) perTask[t.id]++;
+      });
+    };
     for (var d = start; d <= today; d = addDays(d, 1)) {
       var rec = data.days[keyFor(d)];
       var n = score(rec);
@@ -1721,12 +1821,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       if (n === TASKS.length) { perfect++; run++; if (run > best) best = run; }
       else if (!isToday) run = 0;
       // Today only counts toward rates once it's finished, so the morning doesn't drag them down.
-      if (!isToday || n === TASKS.length) {
-        days++;
-        TASKS.forEach(function (t) { if (isDone(t.id, rec)) perTask[t.id]++; });
-      }
+      var counted = !isToday || n === TASKS.length;
+      if (counted) days++;
+      tick(rec, isToday, counted);
     }
-    return { perfect: perfect, best: best, current: currentStreak(data, keyFor(today)), days: days, perTask: perTask };
+    var streaks = {};
+    TASKS.forEach(function (t) { streaks[t.id] = { current: runs[t.id], best: bests[t.id] }; });
+    return { perfect: perfect, best: best, current: currentStreak(data, keyFor(today)), days: days, perTask: perTask, streaks: streaks };
   }
 
   // Days logged: real day keys up to today where at least one task has progress (sorted).
@@ -1885,6 +1986,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (!el) return;
     // A cancel caused by restarting the pop arrives after the new animation began: keep that one.
     if (e.type === 'animationcancel' && e.target.getAnimations && e.target.getAnimations().length) return;
+    // Keep the class until the last of its (finite) CSS animations ends: the ripple outlasts the pop.
+    if (e.type === 'animationend' && el.getAnimations) {
+      try {
+        if (el.getAnimations({ subtree: true }).some(function (a) { return a.animationName && a.playState === 'running'; })) return;
+      } catch (err) { /* older engines: end now */ }
+    }
     el.classList.remove('pop');
   }
   document.addEventListener('animationend', endPop);
@@ -1970,25 +2077,53 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else hideBanner('error');
   }
 
-  // ---- Task cards (built once)
-  var taskEls = {};
+  // ---- Task cards (built once). They open their tab, so they are plain buttons (no pressed state);
+  // a progress ring shows how far each task is, and approval draws a green disc and check on top.
+  var RING_LEN = 81.68; // 2πr for r = 13 in the 32×32 ring
+  var taskEls = {}, cardParts = {};
   TASKS.forEach(function (t) {
     var li = document.createElement('li');
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'task';
     btn.id = 'task-' + t.id;
-    btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML =
       tile(t) +
       '<span class="task-text"><span class="task-name">' + t.name + '</span><span class="task-sub"></span></span>' +
-      '<span class="check" aria-hidden="true">' + CHECK_SVG + '</span>' +
+      '<span class="check ring" style="--accent: ' + t.color + '" aria-hidden="true">' +
+        '<svg class="ring-svg" viewBox="0 0 32 32"><circle class="ring-track" cx="16" cy="16" r="13"/><circle class="ring-arc zero" cx="16" cy="16" r="13"/></svg>' +
+        '<span class="ring-disc">' + CHECK_SVG + '</span></span>' +
       '<span class="chev" aria-hidden="true">' + icon('chevron') + '</span>';
     btn.addEventListener('click', function () { showTab(t.id); });
     li.appendChild(btn);
     $('tasks').appendChild(li);
     taskEls[t.id] = btn;
+    cardParts[t.id] = { sub: btn.querySelector('.task-sub'), arc: btn.querySelector('.ring-arc') };
   });
+
+  // ---- Counting numbers: #count, #pillsCount, #calTotal and #woCount count up (450ms easeOutCubic)
+  // when their value rose since the previous render. A first render, a decrease, Reduce Motion or a
+  // hidden tab sets the value at once. Only the numeric span changes; a '/3' suffix stays.
+  var counters = {};
+  function countTo(name, el, value) {
+    var c = counters[name];
+    if (!c || c.el !== el) { counters[name] = { el: el, to: value, cur: value, raf: 0 }; el.textContent = num(value); return; }
+    if (value === c.to) return;
+    var rise = value > c.to;
+    c.to = value;
+    if (c.raf) { cancelAnimationFrame(c.raf); c.raf = 0; }
+    var view = el.closest('.view');
+    if (!rise || reduceMotion || (view && view.hidden)) { c.cur = value; el.textContent = num(value); return; }
+    var from = c.cur, t0 = null;
+    function frame(ts) {
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / 450), e = 1 - Math.pow(1 - k, 3);
+      var v = k >= 1 ? value : Math.min(value, Math.ceil(from + (value - from) * e));
+      if (v !== c.cur) { c.cur = v; el.textContent = num(v); }
+      c.raf = k < 1 ? requestAnimationFrame(frame) : 0;
+    }
+    c.raf = requestAnimationFrame(frame);
+  }
 
   // ---- Pill rows (built once)
   var pillEls = {};
@@ -2087,7 +2222,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function renderPills(rec) {
     var s = pillStatus(rec);
     $('pillsHero').classList.toggle('approved', s.done);
-    $('pillsCount').innerHTML = s.n + '<small>/' + s.total + '</small>';
+    countTo('pills', $('pillsCount').firstChild, s.n);
+    setText($('pillsCount').lastChild, '/' + s.total);
     $('pillsBar').style.width = (s.n / s.total * 100) + '%';
     $('pillsChip').innerHTML = s.done ? icon('check') + 'Approved' : (s.total - s.n) + ' left';
     $('pillsState').textContent = s.done ? 'All pills taken' + (timeOf(s.at) ? ' · done at ' + timeOf(s.at) : '') : 'Tap each pill once you take it.';
@@ -2105,7 +2241,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function renderCalories(rec) {
     var s = calStatus(rec);
     $('calHero').classList.toggle('approved', s.done);
-    $('calTotal').textContent = num(s.total);
+    countTo('calories', $('calTotal'), s.total);
     $('calGoal').textContent = '/ ' + num(CAL_GOAL) + ' kcal';
     $('calBar').style.width = Math.min(100, s.total / CAL_GOAL * 100) + '%';
     $('calChip').innerHTML = s.done ? icon('check') + 'Approved' : Math.round(Math.min(1, s.total / CAL_GOAL) * 100) + '%';
@@ -2134,7 +2270,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var level = Number(plan.level) || 0;
     $('woTitle').textContent = w.name;
     $('woHero').classList.toggle('approved', s.done);
-    $('woCount').innerHTML = s.n + '<small>/' + s.total + '</small>';
+    countTo('workout', $('woCount').firstChild, s.n);
+    setText($('woCount').lastChild, '/' + s.total);
     $('woBar').style.width = (s.n / s.total * 100) + '%';
     $('woChip').innerHTML = s.done ? icon('check') + 'Approved' : 'Session ' + (level + 1);
     $('woSub').textContent = w.focus + ' · ' + SETS + ' sets each';
@@ -2161,41 +2298,132 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     $('woNext').textContent = 'Tomorrow: ' + nw.name + ' · ' + nw.ex.map(function (e) { return targetText(e, next.level); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(' / ');
   }
 
+  // How far a task is, 0..1 (a legacy one-tap "done" is 1).
+  function taskProgress(id, st) {
+    if (st.done) return 1;
+    if (id === 'calories') return Math.min(1, st.total / CAL_GOAL);
+    return st.total ? Math.min(1, st.n / st.total) : 0;
+  }
+  // A day's workout plan: the stored one, or the one that day would get.
+  function planFor(data, rec, key) { return isObj(rec.workout) && workoutDef(rec.workout.type) ? rec.workout : workoutPlan(data, key); }
+  function planTargets(plan) {
+    var level = Number(plan.level) || 0, def = WORKOUTS[plan.type], reps = 0, secs = 0;
+    def.ex.forEach(function (e) { if (e.unit === 'sec') secs = target(e, level); else if (!reps) reps = target(e, level); });
+    return { reps: reps, secs: secs };
+  }
+  // A Today card's subtitle: what is left (or when it was approved).
+  function cardSub(id, rec, st, key) {
+    if (st.done) return timeOf(st.at) ? 'Approved at ' + timeOf(st.at) : 'Approved';
+    if (id === 'pills') {
+      var left = st.total - st.n;
+      if (!st.n) return st.total + ' to take';
+      if (left <= 3) {
+        var v = isObj(rec.pills) ? rec.pills : {};
+        return 'Missing: ' + PILLS.filter(function (p) { return !isLegacyDone(v[p.id]); }).map(function (p) { return p.name; }).join(', ');
+      }
+      return st.n + ' of ' + st.total + ' taken';
+    }
+    if (id === 'calories') return st.total > 0 ? num(CAL_GOAL - st.total) + ' kcal to go' : num(CAL_GOAL) + ' kcal goal';
+    var plan = planFor(state, rec, key), name = WORKOUTS[plan.type].name;
+    if (st.n > 0 && st.type) return name + ' · ' + st.n + ' of ' + st.total + ' sets';
+    var tg = planTargets(plan);
+    return name + ' · ' + tg.reps + ' reps' + (tg.secs ? ' · ' + tg.secs + ' s hang' : '');
+  }
+  // 'Pills approved, Calories 53%, Workout 3 of 6 sets'
+  function valueText(id, st) {
+    var w = taskWordOf(id);
+    if (st.done) return w + ' approved';
+    if (id === 'calories') return w + ' ' + Math.min(99, Math.round(st.total / CAL_GOAL * 100)) + '%';
+    if (id === 'pills') return w + ' ' + st.n + ' of ' + st.total;
+    return w + ' ' + st.n + ' of ' + st.total + ' sets';
+  }
+  function taskWordOf(id) { return taskWord(TASKS.filter(function (t) { return t.id === id; })[0]); }
+
+  // From 20:00, while anything is left: '4 h left' (hours to midnight, rounded up), '<1 h left' in the last hour.
+  function hoursLeft(now) {
+    if (now.getHours() < 20) return '';
+    var ms = addDays(startOfDay(now), 1) - now;
+    return ms <= 3600000 ? '<1 h left' : Math.ceil(ms / 3600000) + ' h left';
+  }
+  var heroSubSig = null;
+  function updateHeroSub() {
+    var key = shownKey(), total = TASKS.length, left = total - score(state.days[key]), now = new Date();
+    var base = left === total ? left + ' to go' : left + ' more to go';
+    var hint = left > 0 && editKey === null && key === keyFor(now) ? hoursLeft(now) : '';
+    if (base + '|' + hint === heroSubSig) return;
+    heroSubSig = base + '|' + hint;
+    var el = $('heroSub');
+    el.textContent = base;
+    if (hint) {
+      var s = document.createElement('span');
+      s.className = 'left';
+      s.textContent = ' · ' + hint;
+      el.appendChild(s);
+    }
+  }
+
+  // Celebrations on Today play where they can be seen: a change made on another tab leaves its
+  // class on the hidden element, and the CSS animation runs when Today is shown again.
+  function restartClass(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function shimmer() { if (!reduceMotion) restartClass($('bar'), 'shimmer'); }
+  document.addEventListener('animationend', endOnce);
+  document.addEventListener('animationcancel', endOnce);
+  function endOnce(e) {
+    if (e.animationName === 'chipPulse') e.target.classList.remove('pulse');
+    else if (e.animationName === 'shimmer') $('bar').classList.remove('shimmer');
+  }
+
   // Tab dots, the dates, the Today hero and cards, and the streak chip.
+  var shellLast = null; // what the shell showed last: { key, done: { id: bool }, score, streak }
   function renderShell() {
     var key = shownKey(), rec = state.days[key] || {};
     var dateText = FMT.dayLong(key);
-    $('date').textContent = dateText;
-    Array.prototype.forEach.call(document.querySelectorAll('.date-label'), function (el) { el.textContent = dateText; });
+    setText($('date'), dateText);
+    Array.prototype.forEach.call(document.querySelectorAll('.date-label'), function (el) { setText(el, dateText); });
 
-    var done = score(rec);
-    var total = TASKS.length;
-    TASKS.forEach(function (t) {
-      var st = STATUS[t.id](rec);
-      var el = taskEls[t.id];
-      el.setAttribute('aria-pressed', st.done ? 'true' : 'false');
-      el.setAttribute('aria-label', t.name + (st.done ? ', approved' : ', ' + progressText(t.id, rec)) + '. Open');
-      el.querySelector('.task-sub').textContent = st.done ? (timeOf(st.at) ? 'Approved at ' + timeOf(st.at) : 'Approved') : progressText(t.id, rec);
+    var prev = shellLast && shellLast.key === key ? shellLast : null; // null on the first render and after a new day
+    var total = TASKS.length, done = 0, nowDone = {}, texts = [];
+    var segs = $('bar').querySelectorAll('.seg');
+    TASKS.forEach(function (t, i) {
+      var st = STATUS[t.id](rec), p = taskProgress(t.id, st);
+      if (st.done) done++;
+      nowDone[t.id] = st.done;
+      var el = taskEls[t.id], parts = cardParts[t.id], sub = cardSub(t.id, rec, st, key);
+      el.classList.toggle('done', st.done);
+      setText(parts.sub, sub);
+      setAttr(el, 'aria-label', t.name + ': ' + sub + '. Opens ' + taskWord(t));
+      parts.arc.style.strokeDashoffset = (RING_LEN * (1 - p)).toFixed(2);
+      parts.arc.classList.toggle('zero', p <= 0);
+      if (st.done && prev && !prev.done[t.id]) pop(el);   // the disc and check draw in
+      else if (!st.done) el.classList.remove('pop');
+      var seg = segs[i];
+      seg.firstElementChild.style.setProperty('--p', String(Math.round(p * 1000) / 1000));
+      seg.classList.toggle('done', st.done);
+      texts.push(valueText(t.id, st));
       var d = document.querySelector('[data-dot="' + t.id + '"]');
       if (d) d.classList.toggle('on', st.done);
     });
 
-    $('count').innerHTML = done + '<small>/' + total + '</small>';
-    $('countLabel').textContent = done === total ? 'all done' : 'completed';
-    var left = total - done;
-    $('heroSub').textContent = done === total ? 'Every task checked off today.' : done === 0 ? plural(left, 'task') + ' for today' : left + ' more to go';
-    var segs = document.querySelectorAll('.seg');
-    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('on', i < done);
-    $('bar').setAttribute('aria-valuenow', String(done));
-    $('bar').setAttribute('aria-label', done + ' of ' + total + ' tasks completed');
+    countTo('today', $('count').firstChild, done);
+    var bar = $('bar');
+    setAttr(bar, 'aria-valuenow', String(done));
+    setAttr(bar, 'aria-label', done + ' of ' + total + ' tasks done');
+    setAttr(bar, 'aria-valuetext', texts.join(', '));
+    if (done < total) bar.classList.remove('shimmer');
     $('app').classList.toggle('all-done', done === total);
-    $('doneNote').hidden = done !== total;
+    $('celebrate').hidden = done !== total;
+    $('heroSub').hidden = done === total;
+    updateHeroSub();
 
     var streak = currentStreak(state, viewKey);
     var chip = $('streakChip');
-    $('streakText').textContent = plural(streak, 'day');
+    if (!prev) chip.classList.remove('pulse');
+    setText($('streakText'), streak ? plural(streak, 'day') : 'Start a streak');
+    setText($('streakSr'), 'Current streak: ' + plural(streak, 'perfect day'));
     chip.classList.toggle('hot', streak > 0);
-    chip.setAttribute('aria-label', 'Current streak: ' + plural(streak, 'perfect day'));
+    // today just completed and the streak went up: one pulse
+    if (prev && key === viewKey && streak > prev.streak && done === total && prev.score < total && !reduceMotion) restartClass(chip, 'pulse');
+    shellLast = { key: key, done: nowDone, score: done, streak: streak };
     renderDataUI();
   }
 
@@ -2234,44 +2462,50 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else if (name === 'workout') renderWorkout(state, rec, key);
   }
 
-  // Stats, calendar, the selected day and completion rates.
+  // Stats, calendar, the selected day and completion rates. Each part writes only what changed:
+  // the calendar keeps its cells (and the focused one) unless the month, today or firstDay changed.
+  // Render counters for the acceptance tests (call counts, not timings).
+  var renderCounts = window.__dtRenders = { calendar: 0, grid: 0 };
   function viewDate() { return dateFromKey(viewKey); }
   function renderHistory() {
     var now = viewDate();
     var s = stats(state, now);
-    renderStats(s);
+    // First day of use: nothing to sum up yet, only the calendar and a hint.
+    var first = state.firstDay === viewKey;
+    $('stats').hidden = first;
+    $('ratesCard').hidden = first;
+    $('firstRun').hidden = !first;
+    if (!first) { renderStats(s); renderRates(s); }
+    if (cellState(state, selectedKey, now) !== 'tracked') selectedKey = viewKey;
     renderCalendar(state, now, false);
     renderDetail(state, now);
-    renderRates(s);
   }
 
   function renderStats(s) {
-    $('statStreak').innerHTML = s.current + '<small>' + (s.current === 1 ? 'day' : 'days') + '</small>';
-    $('statBest').innerHTML = s.best + '<small>' + (s.best === 1 ? 'day' : 'days') + '</small>';
-    $('statPerfect').textContent = s.perfect;
+    var days = function (n) { return n + '<small>' + (n === 1 ? 'day' : 'days') + '</small>'; };
+    [['statStreak', days(s.current)], ['statBest', days(s.best)], ['statPerfect', String(s.perfect)]].forEach(function (x) {
+      var el = $(x[0]);
+      if (el.innerHTML !== x[1]) el.innerHTML = x[1];
+    });
   }
 
+  // Each task: its completion rate, plus its current and best streak (the overall streak's rule).
+  var ratesHtml = null;
   function renderRates(s) {
-    var box = $('rates');
-    if (!s.days) {
-      $('ratesTitle').textContent = 'Completion rate';
-      box.innerHTML = '<p class="muted-note">Rates appear after your first full day.</p>';
-      return;
+    var title = 'Completion rate', html;
+    if (!s.days) html = '<p class="muted-note">Rates appear after your first full day.</p>';
+    else {
+      title += ' · ' + plural(s.days, 'day');
+      html = TASKS.map(function (t) {
+        var pct = Math.round(s.perTask[t.id] / s.days * 100), k = s.streaks[t.id];
+        var line = k.current || k.best ? '<span class="st">' + (k.current ? k.current + '-day streak' : 'No streak') + ' · best ' + k.best + '</span>' : '';
+        return '<div class="rate" style="--accent: ' + t.color + '">' + tile(t) +
+          '<div class="rate-main"><div class="rate-top"><span class="n">' + t.name + '</span><span class="p num">' + pct + '%</span></div>' +
+          line + '<span class="track"><i style="width:' + pct + '%"></i></span></div></div>';
+      }).join('');
     }
-    $('ratesTitle').textContent = 'Completion rate · ' + plural(s.days, 'day');
-    box.innerHTML = '';
-    TASKS.forEach(function (t) {
-      var pct = Math.round(s.perTask[t.id] / s.days * 100);
-      var row = document.createElement('div');
-      row.className = 'rate';
-      row.style.setProperty('--accent', t.color);
-      row.innerHTML =
-        tile(t) +
-        '<span class="n">' + t.name + '</span>' +
-        '<span class="p num">' + pct + '%</span>' +
-        '<span class="track"><i style="width:' + pct + '%"></i></span>';
-      box.appendChild(row);
-    });
+    setText($('ratesTitle'), title);
+    if (html !== ratesHtml) { ratesHtml = html; $('rates').innerHTML = html; }
   }
 
   // ---- Calendar
@@ -2287,47 +2521,75 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return new Date(d.getFullYear(), d.getMonth(), 1);
   }
 
-  function renderCalendar(data, now, animateDir) {
+  // 'off': future or older than the 365-day range. 'untracked': before the first day, with nothing
+  // logged (a restored day with progress counts as tracked). 'tracked': everything else.
+  function cellState(data, k, now) {
     var today = startOfDay(now);
-    var rangeStart = addDays(today, -(RANGE - 1));
-    var trackedFrom = trackStart(data, today);
-    var y = viewMonth.getFullYear(), m = viewMonth.getMonth();
-    var daysIn = new Date(y, m + 1, 0).getDate();
-    var offset = new Date(y, m, 1).getDay();
+    if (!isDayKey(k) || k > keyFor(today) || k < keyFor(addDays(today, -(RANGE - 1)))) return 'off';
+    if (isDayKey(data.firstDay) && k < data.firstDay && !isLogged(data.days[k])) return 'untracked';
+    return 'tracked';
+  }
 
-    $('calTitle').textContent = FMT.monthYear(viewMonth);
+  // The month's 42 cells: blanks are aria-hidden spans, days are buttons.
+  var cal = { sig: null, days: [] };
+  function buildGrid(todayKey) {
+    renderCounts.grid++;
+    var y = viewMonth.getFullYear(), m = viewMonth.getMonth();
+    var daysIn = new Date(y, m + 1, 0).getDate(), offset = new Date(y, m, 1).getDay();
+    var frag = document.createDocumentFragment();
+    cal.days = [];
+    for (var i = 0; i < 42; i++) {
+      var day = i - offset + 1;
+      if (day < 1 || day > daysIn) {
+        var blank = document.createElement('span');
+        blank.className = 'blank';
+        blank.setAttribute('aria-hidden', 'true');
+        frag.appendChild(blank);
+        continue;
+      }
+      var d = new Date(y, m, day), k = keyFor(d), b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cell';
+      b.textContent = day;
+      b.setAttribute('data-key', k);
+      if (k === todayKey) b.setAttribute('aria-current', 'date');
+      frag.appendChild(b);
+      cal.days.push({ el: b, key: k, name: FMT.dayLong(d) });
+    }
+    var grid = $('grid');
+    grid.textContent = '';
+    grid.appendChild(frag);
+  }
+
+  function renderCalendar(data, now, animateDir) {
+    renderCounts.calendar++;
+    var todayKey = keyFor(now);
+    var y = viewMonth.getFullYear(), m = viewMonth.getMonth();
+    setText($('calTitle'), FMT.monthYear(viewMonth)); // aria-live: announced only when it changes
     $('prevMonth').disabled = viewMonth <= minMonth(now);
     $('nextMonth').disabled = y === now.getFullYear() && m === now.getMonth();
 
-    var grid = $('grid');
-    grid.innerHTML = '';
-    for (var b = 0; b < offset; b++) grid.appendChild(document.createElement('span'));
-    for (var i = 1; i <= daysIn; i++) {
-      var d = new Date(y, m, i);
-      var k = keyFor(d);
-      var cell = document.createElement('button');
-      cell.type = 'button';
-      cell.className = 'cell';
-      cell.textContent = i;
-      var inRange = d >= rangeStart && d <= today;
-      // Days before you started (but within the year) can still be opened; they show as not tracked.
-      var tracked = d >= trackedFrom && d <= today;
-      if (inRange) {
-        var n = score(data.days[k]);
-        cell.classList.add('tracked');
-        if (n) cell.classList.add('l' + n);
-        cell.dataset.key = k;
-        cell.setAttribute('aria-label', FMT.dayLong(d) + ': ' + (tracked || n ? n + ' of ' + TASKS.length + ' completed' : 'not tracked'));
-        if (k === selectedKey) { cell.classList.add('selected'); cell.setAttribute('aria-current', 'date'); }
-      } else {
-        cell.disabled = true;
-        cell.setAttribute('aria-hidden', 'true');
-        cell.tabIndex = -1;
-      }
-      if (d.getTime() === today.getTime()) cell.classList.add('today');
-      grid.appendChild(cell);
-    }
-    if (animateDir) { // Reduce Motion keeps the 300ms as an opacity-only dissolve (see the CSS)
+    var sig = keyFor(viewMonth) + '|' + todayKey + '|' + data.firstDay;
+    var rebuilt = sig !== cal.sig;
+    if (rebuilt) { buildGrid(todayKey); cal.sig = sig; }
+    cal.days.forEach(function (c) {
+      var st = cellState(data, c.key, now), el = c.el, cls = 'cell ' + st, label = null;
+      if (st === 'tracked') {
+        var n = score(data.days[c.key]);
+        if (n) cls += ' l' + n;
+        label = c.name + ': ' + n + ' of ' + TASKS.length + ' completed';
+      } else if (st === 'untracked') label = c.name + ': not tracked';
+      if (c.key === todayKey) cls += ' today';
+      var sel = st === 'tracked' && c.key === selectedKey;
+      if (sel) cls += ' selected';
+      if (el.className !== cls) el.className = cls;
+      if (el.disabled !== (st !== 'tracked')) el.disabled = st !== 'tracked';
+      setAttr(el, 'aria-label', label);
+      setAttr(el, 'aria-pressed', st === 'tracked' ? String(sel) : null);
+      setAttr(el, 'aria-hidden', st === 'off' ? 'true' : null);
+    });
+    if (animateDir && rebuilt) { // Reduce Motion keeps the 300ms as an opacity-only dissolve (see the CSS)
+      var grid = $('grid');
       grid.classList.remove('slide');
       grid.style.setProperty('--dx', (reduceMotion ? 0 : animateDir * 24) + 'px');
       void grid.offsetWidth;
@@ -2335,49 +2597,104 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     }
   }
 
+  // ---- The selected day's detail (inside the calendar card)
+  // A time on another local day than the record's (a late tap saved to that day) reads 'logged later'.
+  function whenText(at, key) {
+    if (!(isTime(at) && at > MIN_TS)) return '';
+    return keyFor(new Date(at)) === key ? FMT.time(at) : 'logged later';
+  }
+  // ['6/6', '8:12 AM'], ['3,620 kcal', '9:40 PM'], ['A', '11 reps', '6:12 PM'], ['B', '14 reps', '50 s', '6:12 PM'], ['Done']
+  function doneParts(id, rec, st, key) {
+    var parts;
+    if (st.legacy) parts = ['Done'];
+    else if (id === 'pills') parts = [st.n + '/' + st.total];
+    else if (id === 'calories') parts = [num(st.total) + ' kcal'];
+    else {
+      var tg = planTargets(rec.workout);
+      parts = [rec.workout.type, tg.reps + ' reps'];
+      if (tg.secs) parts.push(tg.secs + ' s');
+    }
+    var when = whenText(st.at, key);
+    if (when) parts.push(when);
+    return parts;
+  }
+  var detailShown = { key: null, html: null };
   function renderDetail(data, now) {
-    var d = dateFromKey(selectedKey);
-    var today = startOfDay(now);
-    var diff = Math.round((today - d) / 86400000);
+    var key = selectedKey, d = dateFromKey(key), today = startOfDay(now);
+    var diff = Math.round((today - d) / DAY_MS);
     var title = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : FMT.dayLong(d);
     if (diff > 1 && d.getFullYear() !== today.getFullYear()) title = FMT.dayYear(d);
-    var rec = isObj(data.days[selectedKey]) ? data.days[selectedKey] : {};
+    var rec = isObj(data.days[key]) ? data.days[key] : {};
     var n = score(rec);
-    var tracked = selectedKey >= data.firstDay || n > 0;
-
-    $('detailTitle').textContent = title;
+    setText($('detailTitle'), title);
     var pill = $('detailScore');
-    pill.textContent = tracked ? n + '/' + TASKS.length : 'Not tracked';
+    setText(pill, n + '/' + TASKS.length);
     pill.classList.toggle('full', n === TASKS.length);
 
-    var rows = '';
-    TASKS.forEach(function (t) {
+    var rows = TASKS.map(function (t) {
       var st = STATUS[t.id](rec);
-      var status = st.done ? icon('check') + (timeOf(st.at) || 'Done')
+      // a long line wraps only between parts, with the check kept on the first
+      var status = st.done ? doneParts(t.id, rec, st, key).map(function (x, i) { return '<span class="pt">' + (i ? '' : icon('check')) + x + '</span>'; }).join(' · ')
         : hasProgress(t.id, rec) ? progressText(t.id, rec)
-        : (tracked ? (diff === 0 ? 'Not yet' : 'Missed') : '—');
-      rows += '<li class="' + (st.done ? '' : 'off') + '">' + tile(t) +
-        '<span class="n">' + t.name + '</span><span class="s' + (st.done ? ' ok' : '') + '">' + status + '</span></li>';
-    });
-    $('detailRows').innerHTML = rows;
+        : diff === 0 ? 'Not yet' : 'Missed';
+      return '<li' + (st.done ? '' : ' class="off"') + '>' + tile(t) +
+        '<span class="n">' + taskWord(t) + '</span><span class="s' + (st.done ? ' ok' : '') + '">' + status + '</span></li>';
+    }).join('');
+    if (rows === detailShown.html && key === detailShown.key) return;
+    var ul = $('detailRows');
+    if (detailShown.key !== null && key !== detailShown.key && !$('view-today').hidden) crossfade(ul);
+    ul.innerHTML = rows;
+    detailShown = { key: key, html: rows };
+  }
+  // The old rows fade out (an aria-hidden copy on top) while the new ones fade in, over 200ms.
+  function crossfade(ul) {
+    Array.prototype.forEach.call(ul.parentNode.querySelectorAll('.xout'), function (x) { x.remove(); });
+    var old = ul.cloneNode(true);
+    old.removeAttribute('id');
+    old.setAttribute('aria-hidden', 'true');
+    old.classList.remove('xin');
+    old.classList.add('xout');
+    ul.parentNode.appendChild(old);
+    var gone = function () { if (old.parentNode) old.remove(); };
+    old.addEventListener('animationend', gone);
+    setTimeout(gone, 400); // in case the animation never runs
+    restartClass(ul, 'xin');
+  }
+  // After a tap, bring the detail up if it ends under the tab bar.
+  function revealDetail() {
+    var over = $('detail').getBoundingClientRect().bottom - document.querySelector('.tabbar').getBoundingClientRect().top;
+    if (over <= 0) return;
+    try { window.scrollBy({ top: over + 12, behavior: reduceMotion ? 'auto' : 'smooth' }); }
+    catch (e) { window.scrollBy(0, over + 12); }
   }
 
-  // ---- Confetti burst when the third task is checked
+  // ---- Confetti in the app's colours when the third task is checked: from the Today bar when it
+  // is on screen, otherwise from the open tab's hero. The canvas is freed (0×0) when it ends.
+  var confettiRun = 0;
+  function confettiOrigin(w, h) {
+    var el = currentTab === 'today' ? $('bar') : document.querySelector('#view-' + currentTab + ' .hero');
+    if (!el || !el.getClientRects().length) return { x: w / 2, y: h * .42 };
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: Math.max(48, Math.min(h * .8, r.top + r.height / 2)) };
+  }
   function confetti() {
     if (reduceMotion) return;
     var canvas = $('confetti');
-    var ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext && canvas.getContext('2d');
+    if (!ctx) return;
+    var run = ++confettiRun;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var w = window.innerWidth, h = window.innerHeight;
-    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var colors = ['#32d27a', '#8ff0b5', '#ffffff', '#1fa85e', '#f2d56b'];
+    var o = confettiOrigin(w, h);
+    var colors = ['#32d27a', '#a99bff', '#f6b54e', '#5fb4ff', '#ffffff'];
     var parts = [];
     for (var i = 0; i < 110; i++) {
       var a = -Math.PI / 2 + (Math.random() - .5) * 1.9;
       var sp = 7 + Math.random() * 9;
       parts.push({
-        x: w / 2 + (Math.random() - .5) * 60, y: h * .42,
+        x: o.x + (Math.random() - .5) * 60, y: o.y,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
         r: Math.random() * Math.PI, vr: (Math.random() - .5) * .35,
         s: 5 + Math.random() * 5, c: colors[i % colors.length]
@@ -2385,9 +2702,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     }
     var start = null, DURATION = 1900;
     function frame(ts) {
+      if (run !== confettiRun) return; // a newer burst took the canvas over
       if (start === null) start = ts;
       var t = ts - start;
       ctx.clearRect(0, 0, w, h);
+      if (t >= DURATION) { canvas.width = canvas.height = 0; return; } // frees the backing store (~4 MB)
       ctx.globalAlpha = t > DURATION - 500 ? Math.max(0, (DURATION - t) / 500) : 1;
       parts.forEach(function (p) {
         p.vy += .32; p.vx *= .985; p.vy *= .985;
@@ -2399,10 +2718,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
         ctx.restore();
       });
-      if (t < DURATION) requestAnimationFrame(frame); else ctx.clearRect(0, 0, w, h);
+      requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   }
+  function celebrate() { confetti(); shimmer(); }
 
   /* =====================================================================
      CONTROLLER
@@ -2475,7 +2795,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var text = null, ic = 'check';
     if (stale) { text = 'Saved to ' + FMT.dayShort(targetKey) + ' · New day started'; ic = 'info'; }
     else if (lost.length) { text = taskWord(lost[0]) + ' no longer approved'; ic = 'alert'; }
-    else if (targetKey === nowKey && before < TASKS.length && score(rec) === TASKS.length) { confetti(); text = 'All 3 done for today!'; }
+    else if (targetKey === nowKey && before < TASKS.length && score(rec) === TASKS.length) { celebrate(); text = 'All 3 done for today!'; }
     else if (gained.length) text = taskWord(gained[0]) + ' approved';
     else if (res && res.text) { text = res.text; ic = res.icon || 'check'; }
     if (res && res.undo && text) {
@@ -2513,7 +2833,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     VIEWS.forEach(function (v) {
       var el = $('view-' + v);
       if (v !== name) {
-        Array.prototype.forEach.call(el.querySelectorAll('.pop'), function (x) { x.classList.remove('pop'); });
+        // Today's cards keep theirs: a task approved on its tab pops on Today when Today is shown.
+        if (v !== 'today') Array.prototype.forEach.call(el.querySelectorAll('.pop'), function (x) { x.classList.remove('pop'); });
         el.hidden = true;
       } else {
         el.hidden = false;
@@ -2630,15 +2951,17 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   });
 
   // ---- History: pick a day, change month
+  // The cells are updated in place, so the tapped (or Enter-pressed) cell keeps focus.
   $('grid').addEventListener('click', function (e) {
     var cell = e.target.closest('.cell');
-    if (!cell || !cell.dataset.key) return;
+    if (!cell || cell.disabled || !cell.dataset.key) return;
     selectedKey = cell.dataset.key;
     guard('history', function () {
       var now = viewDate();
       renderCalendar(state, now, false);
       renderDetail(state, now);
     });
+    revealDetail();
   });
 
   function shiftMonth(dir) {
@@ -2672,6 +2995,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function refreshIfNewDay(force) {
     var newDay = viewKey !== null && keyFor(new Date()) !== viewKey;
     if (newDay || force === true) render();
+    else if (viewKey !== null) guard('shell', updateHeroSub); // the evening '· N h left' hint
     if (newDay) toast('New day · ' + FMT.dayLong(viewKey), { icon: 'info', passive: true });
     scheduleMidnight();
   }

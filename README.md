@@ -7,9 +7,9 @@ A small mobile web app for three daily check-ins: **Pills Taken 💊**, **Calori
   - **Calories**: add amounts with the keypad or quick buttons until the day reaches 3,500 kcal.
   - **Workout**: Workout A and B alternate daily, 2 sets per exercise. Reps start at 8 (dead hangs at 20 s) and go up by 1 rep (5 s) each time you finish that workout.
 - Settings live at the top of the script in `index.html` (`PILLS`, `CAL_GOAL`, `WORKOUTS`, `REPS_START`, …).
-- Progress (e.g. 2/3) and a progress bar at the top; a completion message at 3/3.
+- Today shows N/3 approved, one bar segment per task (partly filled as you go, green once approved), a ring on each task card and what's left (e.g. "Missing: Iron, Magnesium"). From 8 PM it also says how many hours are left. At 3/3 the hero says "All done for today!".
 - Each calendar day (phone's local time) is stored separately. A new day starts unchecked, even if the app stays open past midnight.
-- **History** covers the last 365 days: streaks, perfect days, a month calendar (swipe or use the arrows to go back 12 months), tap any day to see what was done and when, and per-task completion rates.
+- **History** covers the last 365 days: streaks, perfect days, a month calendar (swipe or use the arrows to go back 12 months; days before you started are greyed out), tap any tracked day to see what was done and when, and per-task completion rates with each task's current and best streak.
 - Saved in the browser's local storage (keys starting with `dailyTasks.` only; the Money app's data is never touched). A copy is kept at the start of each day, and data that can't be read is set aside and recovered from that copy instead of being overwritten.
 - Works offline via a service worker. Launch never waits on the network; a new version installs in the background and the app reloads into it when it's not in use (otherwise it shows "Update ready").
 
