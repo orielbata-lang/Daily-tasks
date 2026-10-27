@@ -551,7 +551,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 @media (orientation: landscape) and (max-height: 500px) {
   .tab { flex-direction: row; min-height: 40px; gap: 6px; font-size: var(--fs-footnote); line-height: 18px; }
   .tab-ic { position: relative; }
-  .tab .dot { top: -1.5px; left: 19px; } /* the icon's top-right, as in portrait */
+  /* the icon's top-right, tucked onto the icon: the label starts 30px from the icon's left (24px icon + 6px gap),
+     so the dot (14-26px) and its 2px ring (12-28px) end before the label instead of cutting into its first letter */
+  .tab .dot { top: -3px; left: 14px; }
 }
 
 /* Press states. iOS shows :active only because a touchstart listener exists (see the script).
