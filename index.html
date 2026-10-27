@@ -244,7 +244,7 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
 .safari-note { display: flex; align-items: flex-start; gap: var(--sp-2); padding: 14px 4px 14px 16px; }
 .sn-text { flex: 1; min-width: 0; padding-top: 2px; }
 .sn-title { margin: 0 0 4px; font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
-.sn-body { margin: 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); }
+.sn-body { margin: 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); text-wrap: pretty; }
 .sn-body .ic { width: 18px; height: 18px; vertical-align: -3px; margin: 0 -3px 0 2px; color: var(--label-1); }
 .sn-x {
   flex: none; width: 44px; height: 44px; margin-top: -10px;
@@ -262,8 +262,12 @@ header.today-head { flex-direction: row; align-items: flex-end; justify-content:
   color: var(--green); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
 }
 .reminder button:active { background: var(--card-hi); }
-/* 'Finish yesterday' (mornings): one line under the hero */
-.finish .reminder-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 'Finish yesterday' (mornings): under the task cards, so the three tasks keep the first screen;
+   the text may take two lines, and an × hides it until the next day needs it */
+.finish { gap: var(--sp-2); padding-top: 6px; padding-bottom: 6px; }
+.finish .reminder-text { text-wrap: pretty; }
+.reminder .finish-x { width: 44px; padding: 0; display: grid; place-items: center; color: var(--label-2); margin-left: -4px; }
+.reminder .finish-x .ic { width: 18px; height: 18px; }
 
 /* ---------- Today's progress ---------- */
 .hero {
@@ -711,13 +715,15 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 }
 .tint-btn:active { transform: scale(.97); }
 .tint-btn .ic { width: 18px; height: 18px; stroke-width: 2.6; }
-/* Editing a past day: under the h1 of each task tab */
-.edit-banner { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 4px 0 12px; border-radius: var(--r-md); background: var(--card-hi); }
+/* Editing a past day: an eyebrow line over the h1 of each task tab ('EDITING SAT, OCT 24'), with
+   Done at its end (a 44px tap target that reaches past the 18px line). It adds 20px, not a 58px
+   banner, so each tab still fits one screen. */
+.edit-banner { display: flex; align-items: center; gap: 6px; min-height: 18px; }
 .eb-ic { flex: none; display: grid; color: var(--label-2); }
-.eb-ic .ic { width: 18px; height: 18px; }
-.eb-text { flex: 1; min-width: 0; font-size: var(--fs-subhead); line-height: 20px; font-weight: 600; color: var(--label-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-ic .ic { width: 14px; height: 14px; stroke-width: 2.4; }
+.eb-text { flex: 1; min-width: 0; font-size: var(--fs-footnote); line-height: 18px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--label-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .eb-done {
-  flex: none; min-height: 44px; padding: 0 12px;
+  flex: none; min-height: 44px; margin: -13px -12px -13px 0; padding: 0 12px;
   border: 0; border-radius: var(--r-md); background: none; cursor: pointer;
   color: var(--green); font-size: var(--fs-subhead); line-height: 20px; font-weight: 600;
   transition: opacity var(--dur-1) var(--ease);
@@ -792,10 +798,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .add-btn.arm { animation: addArm .36s var(--spring); }
 @keyframes addArm { from { transform: scale(.98); } to { transform: scale(1); } }
 .add-btn .ic { width: 20px; height: 20px; stroke-width: 2.6; }
-/* compact phones (iPhone SE): the calculator gives up a little height */
+/* compact phones (iPhone SE): the calculator gives up a little height. While a past day is edited,
+   the spacing around the hero gives back the edit eyebrow's 20px, so 'Add' and the last pill stay
+   above the tab bar (tap targets keep their size). */
 @media (max-height: 740px) {
   .key { min-height: 46px; }
   .quick button { min-height: 40px; }
+  .editing #view-pills, .editing #view-calories, .editing #view-workout { padding-top: var(--sp-1); gap: var(--sp-2); }
+  .editing .tab-hero { padding-top: 16px; padding-bottom: 16px; }
 }
 .list-title:focus { outline: none; }
 .entries { list-style: none; margin: 0; padding: 0; overflow: hidden; }
@@ -836,7 +846,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue);
   font-size: var(--fs-caption2); line-height: 13px; font-weight: 700; white-space: nowrap;
 }
-.sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); } /* never wider than the card: the suffix gives way (fitSuffix) */
+.sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); } /* never wider than the card */
 .set {
   min-height: 52px; padding: 0 8px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--card-hi);
@@ -845,14 +855,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease), transform 80ms var(--ease);
 }
 .set-t { white-space: nowrap; }
-.set-s { color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; font-weight: 400; }
 .set .mc { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ring); display: grid; place-items: center; transition: background-color .2s var(--ease), border-color .2s var(--ease); }
 .set .mc .ic { width: 14px; height: 14px; stroke-width: 3.4; color: var(--green-ink); opacity: 0; transition: opacity .2s var(--ease); }
 /* the first unchecked set of the workout */
 .set.next { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--blue) 60%, transparent); }
 .set.next .mc { border-color: var(--blue); }
 .set[aria-pressed="true"] { background: var(--green-a1); border-color: var(--green-a2); color: var(--green); }
-.set[aria-pressed="true"] .set-s { color: var(--green); } /* never --label-2 on a tinted fill */
 .set[aria-pressed="true"] .mc { background: var(--green); border-color: var(--green); }
 .set[aria-pressed="true"] .mc .ic { opacity: 1; }
 .set.pop .mc { animation: pop .42s var(--spring); }
@@ -867,6 +875,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .hold-arc { stroke: var(--blue); stroke-linecap: round; stroke-dasharray: 282.74; stroke-dashoffset: 282.74; }
 .hold-arc.zero { opacity: 0; }
 .hold-num { position: relative; font: 700 var(--fs-display)/46px var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+/* 100 s and up: three digits stay inside the track (at least 8px from its inner edge, r = 42) */
+.hold-num.d3 { font-size: var(--fs-title1); line-height: 34px; letter-spacing: -.03em; }
 .hold-side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .hold-phase { margin: 0; font-size: var(--fs-headline); line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
 .hold-sub { margin: 0; color: var(--label-2); font-size: var(--fs-subhead); line-height: 20px; }
@@ -883,7 +893,10 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .next-note { margin: 0; padding: 0 4px; display: flex; align-items: flex-start; gap: 8px; color: var(--label-2); font-size: var(--fs-footnote); line-height: 18px; }
 .next-note::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: var(--blue); }
 
-/* Toast: at the top, never covering a control; only its action button takes taps. */
+/* Toast: at the top, over the title row, never covering a control; only its action button takes
+   taps. While it shows (.toasting) the large title and Today's date under it fade out, so no title
+   ever peeks out from behind it; the buttons in the header stay. While a past day is edited it sits
+   under the edit eyebrow, so Done stays in reach (and never under the toast's Undo). */
 .toast {
   position: fixed; left: 50%; z-index: 40;
   top: calc(var(--sat) + 8px);
@@ -899,6 +912,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   transition: opacity .25s var(--ease), transform .35s var(--spring), visibility 0s linear .35s;
 }
 .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
+.view > header h1, .view > header .eyebrow { transition: opacity var(--dur-2) var(--ease); }
+.toasting .view > header h1, .toasting .view > header .eyebrow { opacity: 0; }
+.editing .toast { top: calc(var(--sat) + 30px); }
 .toast.warn { border-color: color-mix(in srgb, var(--amber) 30%, transparent); }
 .toast.has-act { padding-right: 6px; }
 .toast-ic { flex: none; display: grid; color: var(--green); }
@@ -981,7 +997,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   color: var(--green); font-size: var(--fs-headline); font-weight: 600;
 }
 .sheet-screen { display: flex; flex-direction: column; gap: var(--sp-3); }
-.sheet-sub { margin: -8px 0 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); }
+.sheet-sub { margin: -8px 0 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--label-2); text-wrap: pretty; }
+.nw { white-space: nowrap; }
 .status-block {
   display: flex; flex-direction: column; gap: 6px;
   padding: 14px 16px; border-radius: var(--r-md); background: var(--card-hi);
@@ -1025,6 +1042,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .row-text > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-sub { font-size: var(--fs-footnote); line-height: 18px; color: var(--label-2); }
+.row-sub.warn { color: var(--red); }
 .row:disabled .row-sub { color: var(--faint); }
 .group-label { margin: 8px 0 -4px 16px; font-size: var(--fs-caption2); line-height: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--label-2); }
 .sheet-note { margin: -4px 0 0 16px; font-size: var(--fs-footnote); line-height: 18px; color: var(--label-2); }
@@ -1110,12 +1128,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     </div>
   </section>
 
+  <ul class="tasks" id="tasks"></ul>
+
   <div class="card reminder finish" id="finishCard" hidden>
     <span class="reminder-text" id="finishText"></span>
     <button type="button" id="finishBtn">Finish</button>
+    <button type="button" class="finish-x" id="finishDismiss" aria-label="Dismiss"><span data-icon="x"></span></button>
   </div>
-
-  <ul class="tasks" id="tasks"></ul>
 
   <div class="card reminder" id="reminder" hidden>
     <span class="reminder-dot" aria-hidden="true"></span>
@@ -1163,8 +1182,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Pills -->
  <section class="view" id="view-pills" hidden>
-  <header><h1 tabindex="-1">Pills</h1></header>
-  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
+  <header><div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div><h1 tabindex="-1">Pills</h1></header>
   <section class="card hero tab-hero" id="pillsHero" style="--accent: var(--violet)">
     <div class="hero-top">
       <div class="big-line"><span class="big num" id="pillsCount"><span class="cu"></span><small></small></span><span class="unit" id="pillsUnit">taken</span></div>
@@ -1178,8 +1196,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Calories -->
  <section class="view" id="view-calories" hidden>
-  <header><h1 tabindex="-1">Calories</h1></header>
-  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
+  <header><div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div><h1 tabindex="-1">Calories</h1></header>
   <section class="card hero tab-hero" id="calHero" style="--accent: var(--amber)">
     <div class="hero-top">
       <div class="big-line"><span class="big num" id="calTotal"></span><span class="unit" id="calGoal"></span></div>
@@ -1209,8 +1226,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
 
  <!-- Workout -->
  <section class="view" id="view-workout" hidden>
-  <header><h1 id="woTitle" tabindex="-1">Workout</h1></header>
-  <div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div>
+  <header><div class="edit-banner" hidden><span class="eb-ic" data-icon="calendar"></span><span class="eb-text"></span><button class="eb-done" type="button">Done</button></div><h1 id="woTitle" tabindex="-1">Workout</h1></header>
   <section class="card hero tab-hero" id="woHero" style="--accent: var(--blue)">
     <div class="hero-top">
       <div class="big-line"><span class="big num" id="woCount"><span class="cu"></span><small></small></span><span class="unit" id="woUnit">sets done</span></div>
@@ -1256,7 +1272,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     </div>
     <button class="btn-primary" id="backupNow" type="button">Back up now</button>
     <div class="list-group">
-      <button class="row" id="copyBackup" type="button"><span>Copy backup as text</span><span data-icon="chevron"></span></button>
+      <button class="row" id="copyBackup" type="button"><span class="row-text"><span>Copy backup as text</span> <span class="row-sub">Paste it into Notes to keep it</span></span><span data-icon="chevron"></span></button>
     </div>
     <p class="group-label">Restore</p>
     <div class="list-group">
@@ -1312,7 +1328,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   document.addEventListener('touchstart', function () {}, { passive: true });
   window.__touchListener = true;
 
-  var APP_VERSION = 'v11'; // must equal the suffix of VERSION in sw.js; bump both together
+  var APP_VERSION = 'v12'; // must equal the suffix of VERSION in sw.js; bump both together
 
   /* =====================================================================
      SETTINGS — what each task needs
@@ -1432,7 +1448,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   var NUM = new Intl.NumberFormat(LOCALE);
   function num(n) { return NUM.format(n); }
   var MIN_TS = 946684800000; // 2000-01-01: smaller numbers are flags, not times
-  function timeOf(v) { return typeof v === 'number' && isFinite(v) && v > MIN_TS ? FMT.time(v) : ''; }
+  var MAX_TS = 8.64e15;      // the last moment a Date can hold: a larger number is no time at all
+  function timeOf(v) { return typeof v === 'number' && isFinite(v) && v > MIN_TS && v <= MAX_TS ? FMT.time(v) : ''; }
   var LATER = 'logged later'; // a time on another day than its record's (see whenText)
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
   function mod(a, b) { return ((a % b) + b) % b; }
@@ -1447,11 +1464,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
                                 (rolling daily rollback copy)
        'dailyTasks.v1.corrupt'  an unreadable 'dailyTasks.v1' value, kept exactly as found
                                 ('dailyTasks.v1.corrupt.<ms>' when a different one is already kept)
-       'dailyTasks.meta'        { lastBackupAt, lastRestoreAt, snapshotDay, safariNoteDismissed };
+       'dailyTasks.meta'        { lastBackupAt, lastRestoreAt, snapshotDay, safariNoteDismissed,
+                                  finishDismissed: the day whose 'Finish yesterday' card was dismissed };
                                 never stored inside the data and never exported
        'dailyTasks.v1.before-restore'  { at: <ms>, raw: <the 'dailyTasks.v1' string, or null> } written
                                 just before a restore, so the restore can be undone; kept until the
-                                next restore replaces it
+                                next restore replaces it. Undoing swaps: the data it replaces goes
+                                here (undone: true), so the undo can be redone the same way
        'dailyTasks.probe'       written and removed once at startup to test that storage works
      sessionStorage 'dt.reloadAt' guards against reload loops after an update.
 
@@ -1460,7 +1479,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
            pills: { finasteride: <ms when checked>|0, … },
            calories: [ { kcal: 450, ts: <ms> }, … ],
            workout: { type: 'A', level: 2, sets: { pushup_mid: [<ms>|0, <ms>|0], … } } } } }
-     Older saves stored a plain timestamp or `true` per task; that still counts as done.
+     Older saves stored a plain timestamp or `true` per task; that still counts as done. Such a value
+     is converted only when that task of that day is changed; a converted workout gets oneTap: true
+     (it was a plain "workout done", so it never counts toward the A/B progression).
      Changes are additive only: existing fields are never renamed or retyped, and unknown fields
      are kept. SCHEMA stays 2; data saved with a higher schema is opened read-only.
      ===================================================================== */
@@ -1686,7 +1707,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // Save text through the iOS share sheet (Save to Files, iCloud Drive…), a download, or a
   // copyable text box in the sheet. Stays synchronous up to navigator.share() so iOS keeps the
   // user's tap. Resolves to 'shared', 'downloaded', 'cancelled' or 'fallback'.
-  // kind 'backup' means the text is a full backup (copying it from the text box counts as one).
+  // kind 'backup' means the text is a full backup (its Copy says to paste it somewhere to keep it).
   function isIOS() {
     var ua = navigator.userAgent || '';
     return /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
@@ -1861,8 +1882,10 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
 
   // Workout plan: A/B alternate by calendar day; each finished session of the same
-  // workout adds one rep (or 5 seconds of hanging) next time.
+  // workout adds one rep (or 5 seconds of hanging) next time. A plan made from an old one-tap
+  // "workout done" (oneTap, see ensureDay) never counts: it was not an A or B session.
   function dayIndex(k) { return Math.round((dateFromKey(k) - dateFromKey(ROTATION_START)) / 86400000); }
+  function countsAsSession(r) { return isObj(r) && isObj(r.workout) && workoutDef(r.workout.type) && !r.workout.oneTap && workoutStatus(r).done; }
   function workoutPlan(data, key) {
     var rec = data.days[key];
     if (isObj(rec) && isObj(rec.workout) && workoutDef(rec.workout.type)) return rec.workout;
@@ -1871,11 +1894,27 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     Object.keys(data.days).forEach(function (k) {
       if (k >= key || !isDayKey(k)) return;
       var r = data.days[k];
-      if (!isObj(r)) return;
-      var w = r.workout;
-      if (isObj(w) && w.type === type && workoutStatus(r).done) level++;
+      if (countsAsSession(r) && r.workout.type === type) level++;
     });
     return { type: type, level: level, sets: {} };
+  }
+  // A stored plan's level is the number of finished sessions of its type before its day. When an
+  // earlier session becomes finished or unfinished (an edit, an Undo, a restore), re-derive it for
+  // today (unless today's session is already finished) and for the days still open to editing that
+  // have no set done. A past session with sets keeps the target it was done at. Returns whether
+  // anything changed.
+  function relevel(data, todayKey) {
+    var n = {}, changed = false, from = keyFor(addDays(dateFromKey(todayKey), -EDIT_DAYS));
+    Object.keys(WORKOUTS).forEach(function (t) { n[t] = 0; });
+    Object.keys(data.days).filter(function (k) { return isDayKey(k) && k <= todayKey; }).sort().forEach(function (k) {
+      var r = data.days[k];
+      if (!isObj(r) || !isObj(r.workout) || !workoutDef(r.workout.type)) return;
+      var w = r.workout, s = workoutStatus(r);
+      var open = k === todayKey ? !s.done : k >= from && s.n === 0;
+      if (open && !w.oneTap && w.level !== n[w.type]) { w.level = n[w.type]; changed = true; }
+      if (countsAsSession(r)) n[w.type]++;
+    });
+    return changed;
   }
   function target(ex, level) { return ex.unit === 'sec' ? HANG_START + level * HANG_STEP : REPS_START + level * REPS_STEP; }
   function targetText(ex, level) { return ex.unit === 'sec' ? target(ex, level) + ' sec' : target(ex, level) + ' reps'; }
@@ -1886,44 +1925,50 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return same > 1 ? ex.name + ' ' + ex.variant.toLowerCase() : ex.name;
   }
 
-  // Make sure a day's record exists and is in the current shape before it is written:
-  // converts old one-tap values (strictly: a positive timestamp or true) into full detail,
-  // replaces junk with the empty structure, and (freeze) fixes the workout plan.
+  // Make sure a day's record exists and that the task about to be written (`task`: 'pills',
+  // 'calories' or 'workout') is in the current shape: an old one-tap value of that task (strictly:
+  // a positive timestamp or true) becomes full detail, junk becomes the empty structure. The other
+  // tasks are left exactly as stored (every status function reads either shape), so fixing a pill
+  // on an old day never turns its plain "workout done" into an A/B session. A day with no workout
+  // plan gets one ("frozen") at its first write. task 'all' (today's first render) converts every
+  // task.
   // Only called for a day that is about to be written; merely reading a day never changes it.
   var dayChanged = false; // set by ensureDay: whether it modified the record
-  function ensureDay(data, key, freeze) {
-    var rec = data.days[key];
+  function ensureDay(data, key, task) {
+    var rec = data.days[key], every = task === 'all';
     dayChanged = false;
     if (!isObj(rec)) { rec = {}; data.days[key] = rec; dayChanged = true; }
-    if (has(rec, 'pills') && !isObj(rec.pills)) {
-      var p = rec.pills, all = {};
+    if ((every || task === 'pills') && has(rec, 'pills') && !isObj(rec.pills)) {
+      var p = rec.pills, six = {};
       if (isLegacyDone(p)) {
         var at = typeof p === 'number' ? p : Date.now();
-        PILLS.forEach(function (x) { all[x.id] = at; });
+        PILLS.forEach(function (x) { six[x.id] = at; });
       }
-      rec.pills = all; dayChanged = true;
+      rec.pills = six; dayChanged = true;
     }
-    if (has(rec, 'calories') && !Array.isArray(rec.calories)) {
+    if ((every || task === 'calories') && has(rec, 'calories') && !Array.isArray(rec.calories)) {
       var c = rec.calories;
       rec.calories = isLegacyDone(c) ? [{ kcal: CAL_GOAL, ts: typeof c === 'number' ? c : Date.now() }] : [];
       dayChanged = true;
     }
     var w = rec.workout;
-    if (!(isObj(w) && workoutDef(w.type)) && (freeze || isLegacyDone(w))) {
+    if (!(isObj(w) && workoutDef(w.type)) && (every || task === 'workout' || (task && !isLegacyDone(w)))) {
       var plan = workoutPlan(data, key);
       if (isLegacyDone(w)) {
+        // A one-tap "workout done": every set at that time, marked so it never counts as a session.
         var t = typeof w === 'number' ? w : Date.now();
         WORKOUTS[plan.type].ex.forEach(function (e) {
           var s = []; for (var i = 0; i < SETS; i++) s.push(t);
           plan.sets[e.id] = s;
         });
+        plan.oneTap = true;
       }
       rec.workout = plan; dayChanged = true;
     }
     return rec;
   }
   // Today's plan is frozen the first time today is shown.
-  function ensureToday(data, today) { return ensureDay(data, today, true); }
+  function ensureToday(data, today) { return ensureDay(data, today, 'all'); }
 
   // First day counted in stats: firstDay, but never more than RANGE days back.
   function trackStart(data, today) {
@@ -1945,16 +1990,16 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var today = startOfDay(now);
     var start = trackStart(data, today);
     var perfect = 0, best = 0, run = 0, days = 0;
-    // Per task: days done (rates), and its run and best run with the overall streak's rule (today
-    // extends a run once done, and never breaks one while still open).
+    // Per task: days done (rates), and its run and best run. Both follow the rates' rule for today:
+    // it counts once the whole day is done (so a streak is never longer than the days the card
+    // covers), and an open today never breaks a run.
     var perTask = {}, runs = {}, bests = {};
     TASKS.forEach(function (t) { perTask[t.id] = 0; runs[t.id] = 0; bests[t.id] = 0; });
     var tick = function (rec, isToday, counted) {
       TASKS.forEach(function (t) {
         var ok = isDone(t.id, rec);
-        if (ok) { runs[t.id]++; if (runs[t.id] > bests[t.id]) bests[t.id] = runs[t.id]; }
+        if (ok && counted) { runs[t.id]++; if (runs[t.id] > bests[t.id]) bests[t.id] = runs[t.id]; perTask[t.id]++; }
         else if (!isToday) runs[t.id] = 0;
-        if (ok && counted) perTask[t.id]++;
       });
     };
     for (var d = start; d <= today; d = addDays(d, 1)) {
@@ -2169,11 +2214,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // ---- System banner (storage and display problems), above every tab
   var BANNERS = {
     unavailable: { level: 'error', title: 'Storage is unavailable. Nothing will be saved.', actions: [] },
+    // what fixes it first: a restore; the damaged text can still be saved for later
     corrupt: { level: 'error', title: "Your saved data couldn't be read.", body: function () { return corruptText; },
-      actions: [['Export damaged copy', function () { exportFile(corruptRaw || '', 'daily-tasks-damaged-' + keyFor(new Date()) + '.txt', 'text/plain'); }],
-        ['Restore backup', function (btn) { openSheet('main', btn); }],
+      actions: [['Restore backup', function (btn) { openSheet('main', btn); }],
+        ['Save damaged copy', function () { exportFile(corruptRaw || '', 'daily-tasks-damaged-' + keyFor(new Date()) + '.txt', 'text/plain'); }],
         ['Dismiss', function () { hideBanner('corrupt'); }]] },
-    newer: { level: 'warn', title: 'Saved by a newer version of Daily Tasks.', actions: [['Update', function () { updateAndReload(); }]] },
+    newer: { level: 'warn', title: 'Saved by a newer version of Daily Tasks.', body: function () { return "Changes made here won't be saved until you update."; },
+      actions: [['Update', function () { updateAndReload(); }]] },
     // While writes fail the backup is built from the in-memory data, so it includes unsaved taps.
     writefail: { level: 'error', title: "Couldn't save on this iPhone. Changes will be lost when the app closes.",
       actions: [['Back up now', function () { backupNow(); }]] },
@@ -2238,6 +2285,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
 
   // Run one part of the screen; if it throws, keep the app usable and say the data is safe.
+  // A partial update of a part uses its own key ('shellTick', 'historyPart'), so its success never
+  // hides the failure of the whole part.
   var renderErrors = {};
   function guard(part, fn) {
     try { fn(); delete renderErrors[part]; }
@@ -2313,7 +2362,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         rec.pills[p.id] = wasOn ? 0 : Date.now();
         if (!wasOn) { haptic(); pop(btn); return null; } // checking is reversed by tapping again: no Undo
         return { text: p.name + ' unchecked', icon: 'info', undo: true };
-      });
+      }, { task: 'pills' });
     });
     li.appendChild(btn);
     $('pillRows').appendChild(li);
@@ -2338,7 +2387,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       });
       if (n) haptic();
       return n ? { text: plural(n, 'pill') + ' marked taken', undo: true } : null;
-    });
+    }, { task: 'pills' });
   });
 
   // ---- Toast: toast(text, { icon: 'check'|'info'|'alert', action, onAction, onHide, duration, passive })
@@ -2373,7 +2422,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     act.textContent = opts.action || '';
     el.classList.toggle('has-act', !!opts.action);
     el.classList.toggle('warn', name === 'alert');
-    el.classList.add('show');
+    showToastEl(true);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { hideToast(true); }, opts.duration || (opts.action ? 5000 : 2600));
   }
@@ -2381,7 +2430,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     clearTimeout(toastTimer);
     var cur = toastCur;
     toastCur = null;
-    $('toast').classList.remove('show');
+    showToastEl(false);
     if (cur && cur.opts.onHide) cur.opts.onHide();
     if (expired && toastDeferred) {
       setTimeout(function () {
@@ -2391,6 +2440,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         toast(d.text, d.opts);
       }, 350);
     }
+  }
+  // The toast sits on the title row: the title under it fades out while it shows (see the CSS).
+  function showToastEl(on) {
+    $('toast').classList.toggle('show', on);
+    document.documentElement.classList.toggle('toasting', on);
   }
   function flushQueuedToast() {
     var q = toastQueued;
@@ -2404,7 +2458,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var fn = cur.opts.onAction;
     toastCur = null;
     clearTimeout(toastTimer);
-    $('toast').classList.remove('show');
+    showToastEl(false);
     $('toastAct').blur();
     if (fn) fn();
   });
@@ -2576,7 +2630,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var sets = '';
       for (var i = 0; i < SETS; i++) {
         sets += '<button type="button" class="set" data-ex="' + e.id + '" data-set="' + i + '" aria-pressed="false">' +
-          '<span class="mc">' + icon('check') + '</span><span class="set-t">Set ' + (i + 1) + '<span class="set-s"></span></span></button>';
+          '<span class="mc">' + icon('check') + '</span><span class="set-t">Set ' + (i + 1) + '</span></button>';
       }
       html += '<section class="card ex">' +
         '<div class="ex-head"><span class="ex-num" aria-hidden="true"><span class="tile face num" style="--accent: var(--blue)">' + (n + 1) + '</span>' +
@@ -2594,15 +2648,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         '</section>';
     });
     var list = $('exList');
-    if (subObserver) wo.cards.forEach(function (c) { c.sets.forEach(function (b) { subObserver.unobserve(b); }); });
     list.innerHTML = html;
     wo.cards = def.ex.map(function (e, n) {
       var el = list.children[n], c = {
         ex: e, el: el, lvl: el.querySelector('.lvl'), num: el.querySelector('.ex-target b'),
-        setsEl: el.querySelector('.sets'), sets: Array.prototype.slice.call(el.querySelectorAll('.set')),
-        suffix: Array.prototype.slice.call(el.querySelectorAll('.set-s')), hold: null
+        setsEl: el.querySelector('.sets'), sets: Array.prototype.slice.call(el.querySelectorAll('.set')), hold: null
       };
-      if (subObserver) c.sets.forEach(function (b) { subObserver.observe(b); });
       if (e.unit === 'sec') {
         c.hold = { btn: el.querySelector('.hold-btn'), label: el.querySelector('.hold-btn span'), panel: el.querySelector('.hold-panel'),
           arc: el.querySelector('.hold-arc'), num: el.querySelector('.hold-num'), phase: el.querySelector('.hold-phase'),
@@ -2625,19 +2676,23 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     fitSub($('woUnit'), ['sets done', 'sets']);
     $('woBar').style.width = (s.n / s.total * 100) + '%';
     setChip($('woChip'), s.done, (s.total - s.n) + ' left');
-    setText($('woState'), workoutStateText(data, key, plan, s));
+    var prog = progression(data, key, plan);
+    setText($('woState'), workoutStateText(data, key, plan, s, prog));
     var nextFound = s.done;
     wo.cards.forEach(function (c) {
       var e = c.ex, done = Array.isArray(sets[e.id]) ? sets[e.id] : [], complete = true, tg = target(e, level);
       setText(c.num, String(tg));
-      setText(c.lvl, level ? (e.unit === 'sec' ? '+' + HANG_STEP + ' s' : '+' + REPS_STEP) : '');
-      c.lvl.hidden = !level;
+      // the badge only when the target rose since the last finished session, by that much
+      // (the state row says '+N since <day>' then); never for 'same target' or 'first session'
+      var up = prog.kind === 'up' ? prog.delta : 0;
+      setText(c.lvl, up ? (e.unit === 'sec' ? '+' + up * HANG_STEP + ' s' : '+' + up * REPS_STEP) : '');
+      c.lvl.hidden = !up;
       c.sets.forEach(function (b, i) {
         var on = isLegacyDone(done[i]);
         if (!on) complete = false;
         setAttr(b, 'aria-pressed', on ? 'true' : 'false');
+        // 'Set 1' on screen (the target is on the card once); VoiceOver hears it with the target
         setAttr(b, 'aria-label', e.name + ', ' + e.variant.toLowerCase() + ', set ' + (i + 1) + ' of ' + SETS + ', ' + tg + (e.unit === 'sec' ? ' seconds' : ' reps'));
-        fitSuffix(b, c.suffix[i], [' · ' + tg + (e.unit === 'sec' ? ' s' : ' reps'), ' · ' + tg, '']);
         var isNext = !on && !nextFound;
         if (isNext) nextFound = true;
         b.classList.toggle('next', isNext);
@@ -2652,10 +2707,10 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         c.hold.panel.hidden = !timing;
       }
     });
-    // what tomorrow brings (not while a past day is on screen)
+    // what tomorrow brings (not while a past day is on screen, nor once done: the state row says it)
     var nl = $('woNext');
-    nl.hidden = editKey !== null;
-    if (editKey === null) {
+    nl.hidden = editKey !== null || s.done;
+    if (!nl.hidden) {
       var next = workoutPlan(data, keyFor(addDays(dateFromKey(key), 1)));
       setText(nl, 'Tomorrow · ' + WORKOUTS[next.type].name + ': ' + planSummary(next));
     }
@@ -2678,27 +2733,42 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var d = Math.round((dateFromKey(from) - dateFromKey(k)) / DAY_MS);
     return d > 6 ? FMT.monthDay(k) : FMT.weekdayShort(k);
   }
-  // The Workout hero's state row: where this session comes from, or (done) what comes next.
-  function workoutStateText(data, key, plan, s) {
-    var def = WORKOUTS[plan.type], level = Number(plan.level) || 0;
-    if (s.done) {
-      var nk = keyFor(addDays(dateFromKey(key), 2)), np = workoutPlan(data, nk), tg = planTargets(np);
-      return 'Done · next ' + WORKOUTS[np.type].name + ' on ' + FMT.weekdayShort(nk) + ': ' + tg.reps + ' reps' + (tg.secs ? ' · ' + tg.secs + ' s hang' : '');
-    }
-    if (!level) return def.focus + ' · first session';
-    // The latest stored day of this workout before this one, and the latest completed one.
-    var latest = null, lastDone = null;
+  // Where a session's target comes from, read from the earlier days of the same workout (one-tap
+  // days never count, as in workoutPlan). kind:
+  //   'first'  no earlier day of this workout has a set done (and the level is 0)
+  //   'same'   the target of `ref`: a later session left unfinished, or the last finished one
+  //   'up'     the target rose `delta` steps since the last finished session (`ref`)
+  //   'none'   nothing to compare with
+  function progression(data, key, plan) {
+    var level = Number(plan.level) || 0, latest = null, started = null, lastDone = null;
     Object.keys(data.days).filter(function (k) { return isDayKey(k) && k < key; }).sort().reverse().some(function (k) {
       var r = data.days[k];
-      if (!isObj(r) || !isObj(r.workout) || r.workout.type !== plan.type) return false;
+      if (!isObj(r) || !isObj(r.workout) || r.workout.type !== plan.type || r.workout.oneTap) return false;
+      var st = workoutStatus(r);
       if (!latest) latest = k;
-      if (workoutStatus(r).done) { lastDone = k; return true; }
+      if (!started && st.n > 0) started = k;
+      if (st.done) { lastDone = k; return true; }
       return false;
     });
     var lv = function (k) { return Number(data.days[k].workout.level) || 0; };
-    if (latest && latest !== lastDone && lv(latest) === level) return def.focus + ' · same target as ' + dayRef(latest, key);
-    if (lastDone && level > lv(lastDone)) return def.focus + ' · +' + (level - lv(lastDone)) + ' since ' + dayRef(lastDone, key);
-    if (lastDone) return def.focus + ' · same target as ' + dayRef(lastDone, key);
+    if (!started && !level) return { kind: 'first', delta: 0 };
+    if (latest && latest !== lastDone && lv(latest) === level) return { kind: 'same', ref: latest, delta: 0 };
+    if (lastDone && level > lv(lastDone)) return { kind: 'up', ref: lastDone, delta: level - lv(lastDone) };
+    if (lastDone) return { kind: 'same', ref: lastDone, delta: 0 };
+    return { kind: 'none', delta: 0 };
+  }
+  // The Workout hero's state row: where this session comes from; once done, tomorrow's workout
+  // (a past day being edited just says 'Done').
+  function workoutStateText(data, key, plan, s, prog) {
+    var def = WORKOUTS[plan.type];
+    if (s.done) {
+      if (editKey !== null) return 'Done';
+      var np = workoutPlan(data, keyFor(addDays(dateFromKey(key), 1))), tg = planTargets(np);
+      return 'Tomorrow: ' + WORKOUTS[np.type].name + ' · ' + tg.reps + ' reps' + (tg.secs ? ' · ' + tg.secs + ' s hang' : '');
+    }
+    if (prog.kind === 'first') return def.focus + ' · first session';
+    if (prog.kind === 'up') return def.focus + ' · +' + prog.delta + ' since ' + dayRef(prog.ref, key);
+    if (prog.kind === 'same') return def.focus + ' · same target as ' + dayRef(prog.ref, key);
     return def.focus;
   }
 
@@ -2724,12 +2794,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var left = st.total - st.n, taken = st.n + ' of ' + st.total + ' taken';
       if (!st.n) return [st.total + ' to take'];
       if (left > 3) return [taken];
-      // 'Missing: Iron, Vitamin D3, Magnesium', then 'Missing: Iron, Vitamin D3, +1', 'Missing: Iron, +2'
-      // (the comma keeps '+1' apart from names that end in a digit), then '3 of 6 taken'.
+      // 'Missing: Iron, Vitamin D3, Magnesium', then 'Missing: Iron, Vitamin D3 + 1 more',
+      // 'Missing: Iron + 2 more', then '3 of 6 taken'.
       var v = isObj(rec.pills) ? rec.pills : {};
       var miss = PILLS.filter(function (p) { return !isLegacyDone(v[p.id]); }).map(function (p) { return p.name; });
       var forms = ['Missing: ' + miss.join(', ')];
-      for (var k = miss.length - 1; k >= 1; k--) forms.push('Missing: ' + miss.slice(0, k).join(', ') + ', +' + (miss.length - k));
+      for (var k = miss.length - 1; k >= 1; k--) forms.push('Missing: ' + miss.slice(0, k).join(', ') + ' + ' + (miss.length - k) + ' more');
       forms.push(taken);
       return forms;
     }
@@ -2741,25 +2811,6 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
   // Show the first form that fits the subtitle's width. A hidden card (another tab is showing) keeps
   // the full form; the ResizeObserver below fits it again once it has a width, and after a rotation.
-  // A set button's muted suffix: ' · 11 reps', or, when a 3-digit target does not fit a narrow phone,
-  // ' · 388' and then nothing (the target is on the card; the aria-label keeps it all). Measured on
-  // the button, whose width never depends on its text.
-  function fitSuffix(btn, el, forms) {
-    var w = btn.clientWidth, sig = forms.join('\n');
-    if (btn._fit && btn._fit.sig === sig && btn._fit.w === w) return;
-    btn._fit = { sig: sig, w: w, forms: forms, suffix: el };
-    setText(el, forms[0]);
-    if (!w) return;
-    for (var i = 1; i < forms.length && overflowsContent(btn); i++) setText(el, forms[i]);
-  }
-  // Whether a flex row's items (and gaps) need more than its content box. Layout widths, so a
-  // pressed (scaled) button measures the same.
-  function overflowsContent(box) {
-    var cs = getComputedStyle(box), need = 0, n = 0;
-    for (var c = box.firstElementChild; c; c = c.nextElementSibling) { need += c.offsetWidth; n++; }
-    need += (parseFloat(cs.columnGap) || 0) * Math.max(0, n - 1);
-    return need > box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-  }
   function fitSub(el, forms) {
     var w = el.clientWidth, sig = forms.join('\n');
     if (el._fit && el._fit.sig === sig && el._fit.w === w) return;
@@ -2769,11 +2820,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     for (var i = 1; i < forms.length && el.scrollWidth > el.clientWidth; i++) setText(el, forms[i]);
   }
   var subObserver = window.ResizeObserver ? new ResizeObserver(function (entries) {
-    entries.forEach(function (e) { var f = e.target._fit; if (f) { if (f.suffix) fitSuffix(e.target, f.suffix, f.forms); else fitSub(e.target, f.forms); } });
+    entries.forEach(function (e) { var f = e.target._fit; if (f) fitSub(e.target, f.forms); });
   }) : null;
   TASKS.forEach(function (t) { if (subObserver) subObserver.observe(cardParts[t.id].sub); });
   // the task-tab hero units too: they are rendered while their tab is still hidden
-  ['calGoal', 'woUnit', 'finishText'].forEach(function (id) { if (subObserver) subObserver.observe($(id)); });
+  ['calGoal', 'woUnit'].forEach(function (id) { if (subObserver) subObserver.observe($(id)); });
   // 'Pills approved, Calories 53%, Workout 3 of 6 sets'
   function valueText(id, st) {
     var w = taskWordOf(id);
@@ -3054,13 +3105,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   // ---- The selected day's detail (inside the calendar card)
   // A time on another local day than the record's (a late tap saved to that day) reads 'logged later'.
   function whenText(at, key) {
-    if (!(isTime(at) && at > MIN_TS)) return '';
+    if (!(isTime(at) && at > MIN_TS && at <= MAX_TS)) return '';
     return keyFor(new Date(at)) === key ? FMT.time(at) : 'logged later';
   }
   // ['6/6', '8:12 AM'], ['3,620 kcal', '9:40 PM'], ['A', '11 reps', '6:12 PM'], ['B', '14 reps', '50 s', '6:12 PM'], ['Done']
   function doneParts(id, rec, st, key) {
     var parts;
-    if (st.legacy) parts = ['Done'];
+    if (st.legacy || (id === 'workout' && rec.workout.oneTap)) parts = ['Done']; // a one-tap day had no A/B session
     else if (id === 'pills') parts = [st.n + '/' + st.total];
     else if (id === 'calories') parts = [num(st.total) + ' kcal'];
     else {
@@ -3224,12 +3275,20 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     return true;
   }
 
-  // Apply a change to one day's record (the day on screen unless opts.key says otherwise),
-  // save, re-render and celebrate anything newly approved. Returns whether it was applied.
+  // Apply a change to one task (opts.task: 'pills' | 'calories' | 'workout') of one day's record
+  // (the day on screen unless opts.key says otherwise), save, re-render and celebrate anything newly
+  // approved. Returns whether it was applied.
   // fn(rec, state) may return { text, icon, undo: true } to describe a change that offers Undo
-  // (removals and calorie adds); its toast copy loses to a lost or new approval.
+  // (removals and calorie adds); its toast copy loses to a lost or new approval, and everything
+  // loses to 'Not saved' when the write failed.
   var undoSnap = null; // { key, before }: the latest undoable change, restored by day key
   function taskWord(t) { return t.name.split(' ')[0]; }
+  // Why a write did not reach storage, for the toast of the tap that made it.
+  function notSavedText() {
+    if (storageMode === 'memory') return 'Not saved: storage is unavailable';
+    if (storageMode === 'readonly' && activeBanners.newer) return 'Not saved: update the app';
+    return 'Not saved: storage is full';
+  }
   function change(fn, opts) {
     syncFromStorage();
     var targetKey = (opts && opts.key) || shownKey();
@@ -3245,22 +3304,26 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     }
     var snap = { key: targetKey, before: JSON.stringify(has(state.days, targetKey) ? state.days[targetKey] : null) };
     undoSnap = snap; // only the latest snapshot is kept
-    var rec = ensureDay(state, targetKey, true);
+    var rec = ensureDay(state, targetKey, opts && opts.task);
     var was = {};
     TASKS.forEach(function (t) { was[t.id] = isDone(t.id, rec); });
     var before = score(rec);
     var ticks = hapticCount;
     var res = fn(rec, state) || null;
-    persist();
+    // An earlier session finished or unfinished: the targets after it follow (see relevel).
+    if (targetKey !== nowKey && was.workout !== isDone('workout', rec)) relevel(state, nowKey);
+    var saved = persist();
     render();
     var lost = TASKS.filter(function (t) { return was[t.id] && !isDone(t.id, rec); });
     var gained = TASKS.filter(function (t) { return !was[t.id] && isDone(t.id, rec); });
-    if (gained.length && hapticCount > ticks) setTimeout(haptic, 110); // a 'success' double tick
+    if (saved && gained.length && hapticCount > ticks) setTimeout(haptic, 110); // a 'success' double tick
     var text = null, ic = 'check';
     // a past day being edited names itself: 'Sat, Oct 24 · Pills approved' (and never celebrates)
     var day = editKey !== null && targetKey === editKey ? FMT.dayShort(targetKey) : '';
     var completed = before < TASKS.length && score(rec) === TASKS.length;
-    if (stale) { text = 'Saved to ' + FMT.dayShort(targetKey) + ' · New day started'; ic = 'info'; }
+    // A tap that could not be stored never reads as a success (the screen keeps it until reload).
+    if (!saved) { text = notSavedText(); ic = 'alert'; }
+    else if (stale) { text = 'Saved to ' + FMT.dayShort(targetKey) + ' · New day started'; ic = 'info'; }
     else if (lost.length) { text = (day ? day + ' · ' : '') + taskWord(lost[0]) + ' no longer approved'; ic = 'alert'; }
     else if (targetKey === nowKey && completed) { celebrate(); text = 'All 3 done for today!'; }
     else if (day && completed) text = day + ' complete · streak updated';
@@ -3275,8 +3338,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     } else {
       if (undoSnap === snap) undoSnap = null;
       if (text) toast(text, { icon: ic });
-      // An earlier change's Undo can no longer be used: take its button away.
-      else if (toastCur && toastCur.opts.snap) hideToast(false);
+      // An earlier change's (or a restore's) Undo would now also take this tap away: drop its button.
+      else if (toastCur && (toastCur.opts.snap || toastCur.opts.restore)) hideToast(false);
     }
     return true;
   }
@@ -3287,9 +3350,11 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     syncFromStorage();
     if (snap.before === 'null') delete state.days[snap.key];
     else state.days[snap.key] = JSON.parse(snap.before);
-    persist();
+    var nowKey = keyFor(new Date());
+    if (snap.key !== nowKey) relevel(state, nowKey);
+    var saved = persist();
     render();
-    toast('Undone', { icon: 'info' });
+    toast(saved ? 'Undone' : notSavedText(), { icon: saved ? 'info' : 'alert' });
   }
 
   // ---- Tabs. Each tab keeps its scroll position while you switch between tabs; a new day and
@@ -3302,10 +3367,26 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     try { window.scrollTo({ top: 0, left: 0, behavior: smooth && !reduceMotion ? 'smooth' : 'auto' }); }
     catch (e) { window.scrollTo(0, 0); }
   }
+  // A tap that opens another view in place (a Today card, 'Finish', 'Edit this day', Done) puts a
+  // new screen under the finger at once. Double-tap zoom is off, so iOS delivers a quick second tap
+  // as a click on whatever is there now: a pill, a set, a key. For a moment after such a switch,
+  // touch taps inside the view that just opened are ignored (the tab bar is never blocked).
+  var GHOST_MS = 450;
+  var entered = { view: null, at: 0 }, lastPointer = '';
+  document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType || ''; }, true);
+  document.addEventListener('keydown', function () { lastPointer = ''; }, true);
+  document.addEventListener('click', function (e) {
+    if (!entered.view || lastPointer !== 'touch') return;
+    if (Date.now() - entered.at > GHOST_MS || Date.now() < entered.at) { entered.view = null; return; }
+    var v = $('view-' + entered.view);
+    if (v && e.target && v.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+
   // opts.top: open at the top (Today cards, 'Finish', 'Edit this day'); opts.tab: the tab-bar button tapped.
   function showTab(name, opts) {
     opts = opts || {};
     if (name === currentTab) { scrollTop(!opts.top); return; }
+    entered = opts.tab ? { view: null, at: 0 } : { view: name, at: Date.now() };
     scrollMem[currentTab] = window.scrollY || window.pageYOffset || 0;
     var leftEdit = name === 'today' && editKey !== null;
     if (leftEdit) clearEdit(); // the Today tab always shows today
@@ -3376,6 +3457,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     calBuffer = v;
     renderCalPreview();
   }
+  // The typed amount belongs to the day it was typed for. When edit mode starts or ends it is
+  // dropped, with a toast so it never goes silently (the edit banner's Done adds it first).
+  function dropBuffer() {
+    var n = parseInt(calBuffer || '0', 10) || 0;
+    if (calBuffer !== '') setBuffer('');
+    if (n) toast('Not added: ' + num(n) + ' kcal', { icon: 'info' });
+  }
   $('keys').addEventListener('click', function (e) {
     var k = e.target.closest('.key');
     if (!k) return;
@@ -3384,15 +3472,16 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     else if (v === 'back') setBuffer(calBuffer.slice(0, -1));
     else if (calBuffer.length < 4 && !(calBuffer === '' && v === '0')) setBuffer(calBuffer + v);
   });
-  function addCalories(n) {
+  // day: a label for the toast ('Mon, Oct 26') when the add is not obviously for the screen's day.
+  function addCalories(n, day) {
     if (!n) return false;
     return change(function (rec) {
       rec.calories = Array.isArray(rec.calories) ? rec.calories : [];
       rec.calories.push({ kcal: n, ts: Date.now() });
       haptic(); // Add, or a quick add with nothing typed (never a digit)
       var total = calStatus(rec).total;
-      return { text: 'Added ' + num(n) + ' kcal · ' + (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
-    });
+      return { text: (day ? day + ' · ' : '') + 'Added ' + num(n) + ' kcal · ' + (total < CAL_GOAL ? num(CAL_GOAL - total) + ' to go' : num(total - CAL_GOAL) + ' over'), undo: true };
+    }, { task: 'calories' });
   }
   // The typed amount is cleared only once it has really been added.
   $('calAdd').addEventListener('click', function () {
@@ -3431,7 +3520,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
         }
       }
       return null;
-    });
+    }, { task: 'calories' });
     refocus();
   });
 
@@ -3455,7 +3544,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       s[i] = wasOn ? 0 : Date.now();
       if (!wasOn) { haptic(); pop(b); return null; } // checking is reversed by tapping again: no Undo
       return { text: exerciseLabel(def, ex) + ' · set ' + (i + 1) + ' unchecked', icon: 'info', undo: true };
-    });
+    }, { task: 'workout' });
   });
 
   /* ---- EDIT MODE: finish or fix one of the last 7 days on the task tabs.
@@ -3502,6 +3591,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function enterEdit(key, tab, opts) {
     if (!canEdit(key)) return false;
     cancelHold();
+    dropBuffer(); // an amount typed for today is not for this day
     editKey = key;
     editMode = { finishing: !!(opts && opts.finishing), from: (opts && opts.from) || currentTab };
     forgetScroll();
@@ -3516,10 +3606,12 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     editMode = null;
     forgetScroll();
     cancelHold();
+    dropBuffer(); // typed for the edited day: never carried over to today
   }
   function renderEditBanners() {
     var on = editKey !== null, fin = on && !!(editMode && editMode.finishing);
     var text = on ? (fin ? 'Finishing ' : 'Editing ') + FMT.dayShort(editKey) : '';
+    document.documentElement.classList.toggle('editing', on); // compact spacing; the toast under the eyebrow
     Array.prototype.forEach.call(document.querySelectorAll('.edit-banner'), function (el) {
       if (el.hidden !== !on) el.hidden = !on;
       setText(el.querySelector('.eb-text'), text);
@@ -3527,10 +3619,13 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     });
   }
   // Done goes back to Today, where editing started; 'Go to today' shows today on the same tab.
+  // An amount still typed on the keypad is added to the edited day first: Done never drops input.
   document.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.eb-done') : null;
     if (!b || editKey === null) return;
     var finishing = !!(editMode && editMode.finishing), hadFocus = document.activeElement === b;
+    var typed = parseInt(calBuffer || '0', 10) || 0;
+    if (typed && addCalories(typed, FMT.dayShort(editKey))) setBuffer('');
     clearEdit();
     if (!finishing && currentTab !== 'today') showTab('today');
     render();
@@ -3540,30 +3635,36 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     }
   });
 
-  // 'Finish yesterday' on Today, from 00:00 to 11:59, while yesterday has a task started but not done.
-  // ['Workout B 4/6 sets', 'Workout B 4/6']: the card shows the first that fits on one line
-  function finishLabels(id, rec) {
-    var s = STATUS[id](rec), base, unit;
-    if (id === 'pills') { base = 'Pills ' + s.n + '/' + s.total; unit = ' taken'; }
-    else if (id === 'calories') { base = 'Calories ' + num(s.total); unit = ' kcal'; }
-    else { base = 'Workout ' + s.type + ' ' + s.n + '/' + s.total; unit = ' sets'; }
-    return [base + unit, base];
+  // 'Finish yesterday' on Today, from 00:00 to 11:59, while yesterday has a task started but not
+  // done, unless it was dismissed for that day (meta.finishDismissed). It names the goal:
+  // "Yesterday's calories: 2,800 of 3,500 kcal".
+  function finishLabel(id, rec) {
+    var s = STATUS[id](rec);
+    if (id === 'pills') return "Yesterday's pills: " + s.n + ' of ' + s.total + ' taken';
+    if (id === 'calories') return "Yesterday's calories: " + num(s.total) + ' of ' + num(CAL_GOAL) + ' kcal';
+    return "Yesterday's " + WORKOUTS[s.type].name + ': ' + s.n + ' of ' + s.total + ' sets';
   }
   function renderFinishCard() {
     var card = $('finishCard'), now = new Date(), task = null, rec = null;
     var yest = isDayKey(viewKey) ? keyFor(addDays(dateFromKey(viewKey), -1)) : null;
-    if (yest && now.getHours() < 12 && keyFor(now) === viewKey && canEdit(yest)) {
+    if (yest && now.getHours() < 12 && keyFor(now) === viewKey && canEdit(yest) && getMeta().finishDismissed !== yest) {
       rec = state.days[yest];
       if (isObj(rec)) TASKS.some(function (t) { if (hasProgress(t.id, rec) && !isDone(t.id, rec)) { task = t.id; return true; } return false; });
     }
     if (card.hidden !== !task) card.hidden = !task;
     card._key = yest;
     card._task = task;
-    fitSub($('finishText'), task ? finishLabels(task, rec).map(function (x) { return 'Yesterday: ' + x; }) : ['']);
+    setText($('finishText'), task ? finishLabel(task, rec) : '');
   }
   $('finishBtn').addEventListener('click', function () {
     var card = $('finishCard');
     if (card._task) enterEdit(card._key, card._task, { from: 'today' });
+  });
+  $('finishDismiss').addEventListener('click', function () {
+    var card = $('finishCard'), hadFocus = card.contains(document.activeElement);
+    setMeta({ finishDismissed: card._key });
+    renderFinishCard();
+    if (hadFocus) { try { $('task-' + TASKS[TASKS.length - 1].id).focus({ preventScroll: true }); } catch (e) {} }
   });
   $('editDay').addEventListener('click', function () {
     if (canEdit(selectedKey)) enterEdit(selectedKey, firstOpenTask(selectedKey), { from: 'today' });
@@ -3628,6 +3729,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var p = lead ? 0 : Math.min(1, (now - h.startAt) / (h.endAt - h.startAt));
     setText(c.hold.phase, lead ? 'Get ready' : 'Hold');
     setText(c.hold.num, String(n));
+    c.hold.num.classList.toggle('d3', n >= 100);
     c.hold.arc.style.strokeDashoffset = (HOLD_C * (1 - p)).toFixed(2);
     c.hold.arc.classList.toggle('zero', p <= 0);
   }
@@ -3641,6 +3743,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     if (!c) return;
     setText(c.hold.phase, 'Hold time reached');
     setText(c.hold.num, '0');
+    c.hold.num.classList.remove('d3');
     c.hold.arc.style.strokeDashoffset = '0';
     c.hold.arc.classList.remove('zero');
     c.hold.log.hidden = false;
@@ -3685,7 +3788,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
       var c = holdCard();
       if (c) pop(c.sets[logged]);
       return { text: 'Hang set ' + (logged + 1) + ' logged' };
-    }, { key: h.key });
+    }, { key: h.key, task: 'workout' });
     if (logged >= 0 && auto) beep();
     wakeTap();
   }
@@ -3753,7 +3856,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var cell = e.target.closest('.cell');
     if (!cell || cell.disabled || !cell.dataset.key) return;
     selectedKey = cell.dataset.key;
-    guard('history', function () {
+    guard('historyPart', function () { // a partial update: never clears a failed renderHistory
       var now = viewDate();
       renderCalendar(state, now, false);
       renderDetail(state, now);
@@ -3766,7 +3869,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var next = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + dir, 1);
     if (next < minMonth(now) || next > new Date(now.getFullYear(), now.getMonth(), 1)) return;
     viewMonth = next;
-    guard('history', function () { renderCalendar(state, now, dir); });
+    guard('historyPart', function () { renderCalendar(state, now, dir); });
   }
   $('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
   $('nextMonth').addEventListener('click', function () { shiftMonth(1); });
@@ -3792,7 +3895,9 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   function refreshIfNewDay(force) {
     var newDay = viewKey !== null && keyFor(new Date()) !== viewKey;
     if (newDay || force === true) render();
-    else if (viewKey !== null) guard('shell', function () { updateHeroSub(); renderFinishCard(); }); // '· N h left'; 'Finish yesterday' until noon
+    // '· N h left'; 'Finish yesterday' until noon. Its own guard key: succeeding here must never
+    // clear a failure of the whole shell (renderShell), whose 'Something went wrong' banner stays.
+    else if (viewKey !== null) guard('shellTick', function () { updateHeroSub(); renderFinishCard(); });
     if (newDay) toast('New day · ' + FMT.dayLong(viewKey), { icon: 'info', passive: true });
     scheduleMidnight();
   }
@@ -3946,13 +4051,21 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var snap = readRestoreSnapshot();
     $('undoRestoreBtn').hidden = !snap;
     if (snap && !undoRestoreArmed) {
-      var at = Number(snap.at);
-      var when = isFinite(at) && at > MIN_TS ? FMT.monthDay(at) + ', ' + FMT.time(at) : '';
-      $('undoRestoreLabel').textContent = 'Undo last restore';
-      $('undoRestoreWhen').textContent = when; // a second line, so the 52px row never wraps
-      $('undoRestoreWhen').hidden = !when;
+      var when = snapTime(snap);
+      $('undoRestoreLabel').textContent = snap.undone ? 'Redo last restore' : 'Undo last restore';
+      setUndoRestoreSub(when, false); // a second line, so the 52px row never wraps
     }
-    $('appVersion').textContent = 'Version ' + APP_VERSION;
+    $('appVersion').textContent = 'Version ' + APP_VERSION.replace(/^v/, '');
+  }
+  function snapTime(snap) {
+    var at = Number(snap.at);
+    return isTime(at) && at > MIN_TS && at <= MAX_TS ? FMT.monthDay(at) + ', ' + FMT.time(at) : '';
+  }
+  function setUndoRestoreSub(text, warn) {
+    var el = $('undoRestoreWhen');
+    el.textContent = text;
+    el.hidden = !text;
+    el.classList.toggle('warn', !!warn);
   }
 
   // ---- Back up
@@ -3968,11 +4081,14 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     guard('shell', renderShell); // the reminder card, the dot and the sheet's status
     toast(msg);
   }
+  // A copy is only on the clipboard until it is pasted somewhere, so it never counts as a backup
+  // (only the share sheet or a download does): the reminder keeps its schedule.
+  var COPIED = 'Copied \u2014 paste it into Notes to keep it';
   function copyBackup() {
     var text = buildBackupText(), p = null;
     try { if (navigator.clipboard && navigator.clipboard.writeText) p = navigator.clipboard.writeText(text); } catch (e) {}
     if (!p || typeof p.then !== 'function') { showTextFallback(text, 'backup'); return; }
-    p.then(function () { backupSaved('Backup copied'); }, function () { showTextFallback(text, 'backup'); });
+    p.then(function () { toast(COPIED); }, function () { showTextFallback(text, 'backup'); });
   }
   // The copyable text screen, for when neither the share sheet nor a download is possible.
   function showTextFallback(text, kind) {
@@ -3986,7 +4102,7 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var manual = function () { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) { ta.select(); } };
     try { if (navigator.clipboard && navigator.clipboard.writeText) p = navigator.clipboard.writeText(text); } catch (e) {}
     if (!p || typeof p.then !== 'function') { manual(); return; }
-    p.then(function () { if (kind === 'backup') backupSaved('Backup copied'); else toast('Copied'); }, manual);
+    p.then(function () { toast(kind === 'backup' ? COPIED : 'Copied'); }, manual);
   });
 
   // ---- Restore: check, preview, then merge or replace
@@ -4001,10 +4117,26 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
   }
   function checkBackupText(text, errId) {
     var r = parseBackup(text);
-    if (r.error) { showErr(errId, r.error); return; }
+    if (r.error) { showErr(errId, errId === 'pasteError' && r.error === RESTORE_ERRORS.notBackup ? "This text isn't a Daily Tasks backup." : r.error); return; }
     if (!sheetActive) return;
     restoreCand = r;
     showPreview();
+  }
+  // pills taken, kcal, calorie entries and sets done on one day (for what a merge would add)
+  function progressOf(rec) {
+    if (!isObj(rec)) return [0, 0, 0, 0];
+    return [pillStatus(rec).n, calStatus(rec).total, calEntries(rec).length, workoutStatus(rec).n];
+  }
+  // ' · '-joined parts that wrap only between parts, never inside one
+  function setParts(el, parts) {
+    el.textContent = '';
+    parts.forEach(function (t, i) {
+      if (i) el.appendChild(document.createTextNode(' · '));
+      var sp = document.createElement('span');
+      sp.className = 'nw';
+      sp.textContent = t;
+      el.appendChild(sp);
+    });
   }
   function rangeText(keys) {
     if (!keys.length) return '';
@@ -4021,17 +4153,24 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     }
     $('pvFrom').textContent = from;
     var s = stats(c.data, now), n = c.logged.length;
-    $('pvBackup').textContent = n
-      ? [plural(n, 'day'), rangeText(c.logged), plural(s.perfect, 'perfect day'), 'best streak ' + s.best].join(' · ')
-      : 'No days logged';
-    var local = loggedDays(state, todayKey), mine = {}, adds = 0, combines = 0;
-    $('pvLocal').textContent = 'This iPhone: ' + (local.length ? plural(local.length, 'day') + ' · ' + rangeText(local) : 'no days logged yet');
+    setParts($('pvBackup'), n ? ['In backup: ' + plural(n, 'day'), rangeText(c.logged), plural(s.perfect, 'perfect day'), 'best streak ' + s.best] : ['In backup: no days logged']);
+    var local = loggedDays(state, todayKey), mine = {}, adds = 0, fills = 0;
+    setParts($('pvLocal'), local.length ? ['This iPhone: ' + plural(local.length, 'day'), rangeText(local)] : ['This iPhone: no days logged yet']);
     local.forEach(function (k) { mine[k] = true; });
-    c.logged.forEach(function (k) { if (mine[k]) combines++; else adds++; });
-    $('pvMerge').textContent = adds && combines ? 'Merge adds ' + plural(adds, 'day') + ' and combines ' + combines
-      : adds ? 'Merge adds ' + plural(adds, 'day')
-      : combines ? 'Merge combines ' + plural(combines, 'day')
-      : 'Merge adds nothing new';
+    // What a merge would really change: days it adds, and shared days it fills in (more pills,
+    // calories, entries or sets than here). It never removes anything.
+    var merged = mergeData(state, c.data);
+    c.logged.forEach(function (k) {
+      if (!mine[k]) { adds++; return; }
+      var a = progressOf(state.days[k]), b = progressOf(merged.days[k]);
+      if (b.some(function (v, i) { return v > a[i]; })) fills++;
+    });
+    var kept = ' Nothing here is removed.';
+    $('pvMerge').textContent = adds && fills ? 'Merge adds ' + plural(adds, 'day') + ' and fills in ' + fills + '.' + kept
+      : adds ? 'Merge adds ' + plural(adds, 'day') + '.' + kept
+      : fills ? 'Merge fills in ' + plural(fills, 'day') + '.' + kept
+      : n === 1 ? 'Nothing new: this iPhone already has this day.'
+      : 'Nothing new: this iPhone already has all ' + n + ' days.';
     var warn = [];
     if (c.skipped.days) warn.push(plural(c.skipped.days, 'damaged day') + ' will be skipped');
     if (c.skipped.entries) warn.push(plural(c.skipped.entries, 'damaged entry', 'damaged entries') + ' will be skipped');
@@ -4060,9 +4199,8 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     var prevState = state, prevFailed = writeFailed;
     var next = mode === 'merge' ? mergeData(state, c.data) : clone(c.data);
     if (mode !== 'merge') next.firstDay = c.data.firstDay;
-    // Today's untouched workout is planned again from the restored history.
-    var t = next.days[keyFor(new Date())];
-    if (isObj(t) && has(t, 'workout') && workoutStatus(t).n === 0) delete t.workout;
+    // Today's workout (unless finished) and the open days' plans follow the restored history.
+    relevel(next, keyFor(new Date()));
     state = next;
     if (!persist()) {
       state = prevState;
@@ -4088,28 +4226,60 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     historyDirty = true;
     render();
     closeSheet();
-    toast('Restored ' + plural(c.logged.length, 'day'), { action: 'Undo', duration: 8000, onAction: undoRestore });
+    toast('Restored ' + plural(c.logged.length, 'day'), { action: 'Undo', duration: 8000, restore: true, onAction: undoRestore });
   }
-  // Put back the data exactly as it was stored before the last restore.
+  // Put back the data exactly as it was stored before the last restore. It is a swap: the data
+  // replaced now goes into the snapshot first (marked undone), so the undo can itself be undone,
+  // from its toast or from the 'Redo last restore' row; nothing logged since is ever thrown away.
   function undoRestore() {
-    var s = readRestoreSnapshot();
-    if (!s || storageMode !== 'ok') { toast("Couldn't undo the restore", { icon: 'alert' }); return; }
+    var s = readRestoreSnapshot(), cur;
+    var fail = function () { toast(s && s.undone ? "Couldn't redo the restore" : "Couldn't undo the restore", { icon: 'alert' }); };
+    if (!s || storageMode !== 'ok') { fail(); return; }
+    try {
+      cur = window.localStorage.getItem(STORAGE_KEY);
+      window.localStorage.setItem(RESTORE_KEY, JSON.stringify({ at: Date.now(), raw: cur, undone: !s.undone }));
+    } catch (e) { fail(); return; }
     try {
       if (s.raw === null) window.localStorage.removeItem(STORAGE_KEY);
       else window.localStorage.setItem(STORAGE_KEY, s.raw);
-    } catch (e) { toast("Couldn't undo the restore", { icon: 'alert' }); return; }
+    } catch (e) {
+      try { window.localStorage.setItem(RESTORE_KEY, JSON.stringify(s)); } catch (e2) {} // nothing swapped
+      fail(); return;
+    }
     clearEdit();
     cancelHold();
     undoSnap = null;
     historyDirty = true;
+    var hadCorrupt = !!activeBanners.corrupt;
     loadState(); // shows the corrupt banner itself if the snapshot is the damaged string
     // Back to the data the corrupt banner was about (boot had already replaced the damaged
-    // string with the recovered copy): the banner, with its export, comes back too.
-    if (corruptHiddenByRestore && corruptRaw !== null && storageMode === 'ok') showBanner('corrupt');
-    corruptHiddenByRestore = false;
+    // string with the recovered copy): the banner, with its export, comes back too. A redo takes
+    // it away again, as the restore did.
+    if (!s.undone && corruptHiddenByRestore && corruptRaw !== null && storageMode === 'ok') showBanner('corrupt');
+    corruptHiddenByRestore = !!s.undone && hadCorrupt;
+    if (loadOk && storageMode === 'ok' && relevel(state, keyFor(new Date()))) persist();
     render();
     if (sheetActive) closeSheet();
-    toast('Restore undone', { icon: 'info' });
+    toast(s.undone ? 'Restore redone' : 'Restore undone', { icon: 'info', action: 'Undo', duration: 8000, restore: true, onAction: undoRestore });
+  }
+  // Days whose record holds anything logged after `at` (a pill, entry or set time): what undoing
+  // (or redoing) the last restore would take away.
+  function daysLoggedSince(at) {
+    var n = 0;
+    var later = function (v) { return typeof v === 'number' && isFinite(v) && v > at; };
+    Object.keys(state.days).forEach(function (k) {
+      var r = state.days[k];
+      if (!isDayKey(k) || !isObj(r)) return;
+      var hit = later(r.pills) || later(r.calories) || later(r.workout);
+      if (isObj(r.pills)) Object.keys(r.pills).forEach(function (p) { if (later(r.pills[p])) hit = true; });
+      if (Array.isArray(r.calories)) r.calories.forEach(function (e) { if (isObj(e) && later(Number(e.ts))) hit = true; });
+      if (isObj(r.workout) && isObj(r.workout.sets)) Object.keys(r.workout.sets).forEach(function (id) {
+        var a = r.workout.sets[id];
+        if (Array.isArray(a) && a.some(later)) hit = true;
+      });
+      if (hit) n++;
+    });
+    return n;
   }
   function disarmReplace() {
     clearTimeout(replaceArmed);
@@ -4150,10 +4320,15 @@ h2 { margin: 0; font-size: var(--fs-title2); line-height: 28px; font-weight: 700
     replaceArmed = setTimeout(disarmReplace, 4000);
   });
   $('cancelRestore').addEventListener('click', function () { showScreen('main'); });
-  // Undoing an old restore also drops everything logged since, so it needs a second tap too.
+  // Undoing (or redoing) an old restore also takes away what was logged since, so it needs a
+  // second tap, and the armed row says what it would take away. The swap itself stays undoable.
   $('undoRestoreBtn').addEventListener('click', function () {
     if (undoRestoreArmed) { disarmUndoRestore(); undoRestore(); return; }
-    $('undoRestoreLabel').textContent = 'Tap again to undo';
+    var snap = readRestoreSnapshot();
+    if (!snap) return;
+    var at = Number(snap.at), n = isTime(at) && at <= MAX_TS ? daysLoggedSince(at) : 0;
+    $('undoRestoreLabel').textContent = snap.undone ? 'Tap again to redo' : 'Tap again to undo';
+    if (n) setUndoRestoreSub('Removes ' + plural(n, 'day') + ' logged since ' + FMT.monthDay(at), true);
     this.classList.add('armed');
     undoRestoreArmed = setTimeout(function () { disarmUndoRestore(); if (sheetScreen === 'main') renderSheetMain(); }, 4000);
   });
