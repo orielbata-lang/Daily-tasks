@@ -636,31 +636,43 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 }
 
 /* ---------- 'Your data' sheet (backup and restore) ----------
-   A bottom sheet in the dialog top layer. The paste and text screens switch to a top-anchored
-   large detent ('.tall') so the textarea and its button stay above the iOS keyboard. */
+   A bottom sheet in the dialog top layer. The <dialog> is only a still frame (position, width,
+   detent); its .sheet-body panel is the surface that scrolls, slides and fades. The dialog itself
+   must never be transformed or faded: while it is open the toast lives in it (above the inert
+   page), and a transformed ancestor would become the toast's containing block and carry it along
+   with the slide. The paste and text screens switch to a top-anchored large detent ('.tall') so
+   the textarea and its button stay above the iOS keyboard. */
 .sheet {
   position: fixed; inset: auto 0 0 0;
   margin: 0 auto; padding: 0; border: 0;
   width: min(100%, 480px); max-width: 100%;
-  height: auto; max-height: 88vh; max-height: 88dvh;
-  overflow-y: auto; overscroll-behavior: contain;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: var(--card); color: var(--label-1);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, .35);
+  height: auto; max-height: none;
+  overflow: visible;
+  background: none; color: var(--label-1);
 }
 .sheet:not([open]) { display: none; }
-.sheet[open] { display: block; animation: sheetUp var(--dur-3) var(--ease); }
-.sheet.closing { animation: sheetDown .22s var(--ease) forwards; }
+.sheet[open] { display: block; }
+.sheet-body {
+  max-height: 88vh; max-height: 88dvh;
+  overflow-y: auto; overscroll-behavior: contain;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--card);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, .35);
+  padding: 8px 20px calc(20px + var(--sab)); display: flex; flex-direction: column; gap: var(--sp-3);
+}
+.sheet-body > * { flex-shrink: 0; } /* the panel scrolls; its rows never get squeezed */
+.sheet[open] .sheet-body { animation: sheetUp var(--dur-3) var(--ease); }
+.sheet.closing .sheet-body { animation: sheetDown .22s var(--ease) forwards; }
 .sheet::backdrop { background: rgba(0, 0, 0, .55); animation: fadeIn var(--dur-3) var(--ease); }
 .sheet.closing::backdrop { animation: fadeOut .22s var(--ease) forwards; }
-.sheet.tall { top: calc(var(--sat) + 12px); bottom: 0; max-height: none; border-radius: var(--r-lg); }
-.sheet.tall .sheet-body { min-height: 100%; } /* so a tap on its empty part is not a backdrop tap */
+.sheet.tall { top: calc(var(--sat) + 12px); bottom: 0; }
+/* the panel fills the detent, so a tap on its empty part is not a backdrop tap */
+.sheet.tall .sheet-body { height: 100%; max-height: none; border-radius: var(--r-lg); }
 .sheet.sheet-fallback { z-index: 60; }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .55); }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes sheetDown { from { transform: none; } to { transform: translateY(100%); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.sheet-body { padding: 8px 20px calc(20px + var(--sab)); display: flex; flex-direction: column; gap: var(--sp-3); }
 .grabber { flex: none; width: 36px; height: 5px; margin: 0 auto; border-radius: 3px; background: rgba(255, 255, 255, .2); }
 .sheet-head { display: flex; align-items: center; gap: var(--sp-1); min-height: 44px; margin-top: -4px; }
 .sheet-head h2 { flex: 1; min-width: 0; font-size: var(--fs-title2); line-height: 28px; }
@@ -741,9 +753,9 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  /* the sheet fades instead of sliding */
-  .sheet[open] { animation: fadeIn var(--dur-2) ease !important; }
-  .sheet.closing { animation: fadeOut .15s ease forwards !important; }
+  /* the sheet fades instead of sliding (its panel only: the toast in the dialog never fades with it) */
+  .sheet[open] .sheet-body { animation: fadeIn var(--dur-2) ease !important; }
+  .sheet.closing .sheet-body { animation: fadeOut .15s ease forwards !important; }
   .sheet.closing::backdrop { animation: fadeOut .15s ease forwards; }
 }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
@@ -2556,6 +2568,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
      nothing until Merge or Replace, and keeps the previous data under RESTORE_KEY first.
      ===================================================================== */
   var sheet = $('dataSheet');
+  var sheetPanel = sheet.querySelector('.sheet-body'); // the surface that scrolls and slides
   var sheetScreen = null;      // 'main' | 'paste' | 'text' | 'preview' while open
   var sheetActive = false;
   var sheetOpener = null;
@@ -2597,6 +2610,8 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     showScreen(screen || 'main');
   }
   // The toast lives in the sheet while it is open (above the inert page) and in <body> otherwise.
+  // Only the sheet's panel slides or fades, never the <dialog> itself, so a toast in the dialog
+  // keeps the viewport as its containing block and stays put at the top while the sheet opens.
   function placeToast(inSheet) {
     var t = $('toast');
     if (inSheet) { if (t.parentNode !== sheet) sheet.appendChild(t); }
@@ -2651,7 +2666,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     ['mainError', 'pasteError', 'pvError'].forEach(hideErr);
     if (name !== 'preview') { restoreCand = null; disarmReplace(); }
     if (name === 'main') renderSheetMain();
-    sheet.scrollTop = 0;
+    sheetPanel.scrollTop = 0;
     try { (name === 'paste' ? $('pasteText') : $('sheetTitle')).focus({ preventScroll: true }); } catch (e) {}
   }
   function showErr(id, text) { var el = $(id); el.textContent = text; el.hidden = false; }
