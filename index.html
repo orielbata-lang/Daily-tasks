@@ -652,6 +652,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .sheet[open] { display: block; animation: sheetUp var(--dur-3) var(--ease); }
 .sheet.closing { animation: sheetDown .22s var(--ease) forwards; }
 .sheet::backdrop { background: rgba(0, 0, 0, .55); animation: fadeIn var(--dur-3) var(--ease); }
+.sheet.closing::backdrop { animation: fadeOut .22s var(--ease) forwards; }
 .sheet.tall { top: calc(var(--sat) + 12px); bottom: 0; max-height: none; border-radius: var(--r-lg); }
 .sheet.tall .sheet-body { min-height: 100%; } /* so a tap on its empty part is not a backdrop tap */
 .sheet.sheet-fallback { z-index: 60; }
@@ -716,6 +717,11 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .row .ic { width: 18px; height: 18px; color: var(--label-2); }
 .row:disabled .ic { color: var(--faint); }
 .row.armed { color: var(--red); }
+/* A row with a secondary line (iOS 'subtitle' cell): both lines fit the 52px row and never wrap. */
+.row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row-text > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-sub { font-size: var(--fs-footnote); line-height: 18px; color: var(--label-2); }
+.row:disabled .row-sub { color: var(--faint); }
 .group-label { margin: 8px 0 -4px 16px; font-size: var(--fs-caption2); line-height: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--label-2); }
 .sheet-note { margin: -4px 0 0 16px; font-size: var(--fs-footnote); line-height: 18px; color: var(--label-2); }
 .sheet-error { margin: 0; font-size: var(--fs-subhead); line-height: 20px; color: var(--red); }
@@ -738,6 +744,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   /* the sheet fades instead of sliding */
   .sheet[open] { animation: fadeIn var(--dur-2) ease !important; }
   .sheet.closing { animation: fadeOut .15s ease forwards !important; }
+  .sheet.closing::backdrop { animation: fadeOut .15s ease forwards; }
 }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 </style>
@@ -925,7 +932,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     <div class="group">
       <button class="row" id="restoreFileBtn" type="button"><span>Restore from file…</span><span data-icon="chevron"></span></button>
       <button class="row" id="pasteBtn" type="button"><span>Paste backup text…</span><span data-icon="chevron"></span></button>
-      <button class="row" id="undoRestoreBtn" type="button" hidden><span id="undoRestoreLabel"></span><span data-icon="chevron"></span></button>
+      <button class="row" id="undoRestoreBtn" type="button" hidden><span class="row-text"><span id="undoRestoreLabel">Undo last restore</span> <span class="row-sub" id="undoRestoreWhen"></span></span><span data-icon="chevron"></span></button>
     </div>
     <p class="sheet-note" id="restoreNote" hidden>Restore needs working storage.</p>
     <p class="sheet-error" id="mainError" role="alert" hidden></p>
@@ -1409,10 +1416,15 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     try { obj = JSON.parse(text); } catch (e) { return { error: RESTORE_ERRORS.notBackup }; }
     if (!isObj(obj)) return { error: RESTORE_ERRORS.notBackup };
     if (obj.app !== undefined && obj.app !== 'daily-tasks') return { error: RESTORE_ERRORS.otherApp };
-    var envelope = obj.app === 'daily-tasks' && isObj(obj.data);
+    var marked = obj.app === 'daily-tasks';
+    var envelope = marked && isObj(obj.data);
     var data = envelope ? obj.data : obj;
+    var newer = (marked && Number(obj.schema) > SCHEMA) || Number(data.schema) > SCHEMA;
+    // A file that says it is ours but comes from a newer schema gets the update message before
+    // any shape check: a future format may no longer look like this one.
+    if (newer && marked) return { error: RESTORE_ERRORS.newer };
     if (!isObj(data.days)) return { error: RESTORE_ERRORS.notBackup };
-    if ((envelope && Number(obj.schema) > SCHEMA) || Number(data.schema) > SCHEMA) return { error: RESTORE_ERRORS.newer };
+    if (newer) return { error: RESTORE_ERRORS.newer };
 
     var todayKey = keyFor(new Date());
     var skipped = { days: 0, entries: 0, future: 0 };
@@ -1653,13 +1665,16 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     if (aa && ba) {
       // Union by time and amount, keeping repeats only as often as one side has them.
       var id = function (e) { return Number(e && e.ts) + '|' + Number(e && e.kcal); };
-      var inOut = {}, seenB = {}, out = a.slice();
+      var inOut = {}, seenB = {}, out = a.slice(), added = false;
       a.forEach(function (e) { var k = id(e); inOut[k] = (inOut[k] || 0) + 1; });
       b.forEach(function (e) {
         var k = id(e);
         seenB[k] = (seenB[k] || 0) + 1;
-        if (seenB[k] > (inOut[k] || 0)) { out.push(e); inOut[k] = (inOut[k] || 0) + 1; }
+        if (seenB[k] > (inOut[k] || 0)) { out.push(e); added = true; inOut[k] = (inOut[k] || 0) + 1; }
       });
+      // Nothing new from the backup: this day's list stays exactly as it is (never re-sorted),
+      // so merging the same backup again changes no byte, whatever order the entries were in.
+      if (!added) return a;
       return out.map(function (e, i) { return { e: e, i: i }; })
         .sort(function (x, y) { return ((Number(x.e.ts) || 0) - (Number(y.e.ts) || 0)) || (x.i - y.i); })
         .map(function (x) { return x.e; });
@@ -1891,10 +1906,21 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   // ---- Toast: toast(text, { icon: 'check'|'info'|'alert', action, onAction, onHide, duration, passive })
   // A new toast replaces the current one (and drops its action). A `passive` toast (new day,
   // update ready) waits while an action toast is up, so it never throws away a pending Undo.
-  var toastTimer = null, toastCur = null, toastDeferred = null;
+  // A toast asked for while the 'Your data' sheet slides away waits for it to be gone
+  // (toastQueued, shown by onSheetClosed): until then the page under the sheet is still inert,
+  // so the toast would neither animate in at the top nor be announced.
+  var toastTimer = null, toastCur = null, toastDeferred = null, toastQueued = null;
+  function sheetClosing() { var s = $('dataSheet'); return !!s && s.classList.contains('closing'); }
   function toast(text, opts) {
     opts = opts || {};
     var el = $('toast');
+    if (sheetClosing()) {
+      if (opts.passive && toastQueued && toastQueued.opts.action) { toastDeferred = { text: text, opts: opts }; return; }
+      var dropped = toastQueued;
+      toastQueued = { text: text, opts: opts };
+      if (dropped && dropped.opts.onHide) dropped.opts.onHide();
+      return;
+    }
     if (opts.passive && toastCur && toastCur.action) { toastDeferred = { text: text, opts: opts }; return; }
     var prev = toastCur;
     toastCur = { action: opts.action ? opts : null, opts: opts };
@@ -1927,6 +1953,11 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
         toast(d.text, d.opts);
       }, 350);
     }
+  }
+  function flushQueuedToast() {
+    var q = toastQueued;
+    toastQueued = null;
+    if (q) toast(q.text, q.opts);
   }
   // Runs the action exactly once, then hides the toast (the action may show its own toast).
   $('toastAct').addEventListener('click', function () {
@@ -2534,6 +2565,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   var restoreCand = null;      // the checked backup shown in the preview; nothing written yet
   var fallbackText = '', fallbackKind = '';
   var replaceArmed = null, undoRestoreArmed = null; // timers for the tap-again buttons
+  var corruptHiddenByRestore = false; // the last restore (this session) took the corrupt banner away
   var SCREENS = { main: 'scrMain', paste: 'scrPaste', text: 'scrText', preview: 'scrPreview' };
   var SCREEN_TITLES = { main: 'Your data', paste: 'Paste backup', text: 'Save as text', preview: 'Restore backup' };
 
@@ -2544,7 +2576,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       sheetOpener = opener || document.activeElement;
       sheetHtmlOverflow = document.documentElement.style.overflow;
       document.documentElement.style.overflow = 'hidden';
-      sheet.appendChild($('toast')); // the modal sheet makes the page inert: keep toasts above it
+      placeToast(true); // the modal sheet makes the page inert: keep toasts above it
       var native = false;
       if (typeof sheet.showModal === 'function') { try { sheet.showModal(); native = true; } catch (e) {} }
       if (!native) {
@@ -2557,11 +2589,24 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       }
     }
     clearTimeout(sheetCloseTimer);
-    sheet.classList.remove('closing');
+    if (sheet.classList.contains('closing')) { // reopened while sliding away
+      sheet.classList.remove('closing');
+      placeToast(true);
+      flushQueuedToast();
+    }
     showScreen(screen || 'main');
+  }
+  // The toast lives in the sheet while it is open (above the inert page) and in <body> otherwise.
+  function placeToast(inSheet) {
+    var t = $('toast');
+    if (inSheet) { if (t.parentNode !== sheet) sheet.appendChild(t); }
+    else if (t.parentNode !== document.body) document.body.insertBefore(t, $('confetti'));
   }
   function closeSheet() {
     if (!sheetActive || sheet.classList.contains('closing')) return;
+    // The toast leaves before the sheet slides down, so a toast that is up never rides down
+    // with it; one asked for during the slide waits until onSheetClosed (see toast()).
+    placeToast(false);
     sheet.classList.add('closing');
     sheetCloseTimer = setTimeout(finishClose, reduceMotion ? 150 : 220);
   }
@@ -2580,13 +2625,14 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     sheet.classList.remove('closing', 'tall', 'sheet-fallback');
     if (sheetBackdrop) { sheetBackdrop.remove(); sheetBackdrop = null; }
     document.documentElement.style.overflow = sheetHtmlOverflow;
-    document.body.insertBefore($('toast'), $('confetti'));
+    placeToast(false);
     restoreCand = null;
     disarmReplace(); disarmUndoRestore();
     sheetScreen = null;
     var o = sheetOpener;
     sheetOpener = null;
     if (o && o !== document.body && o.focus && document.contains(o)) { try { o.focus({ preventScroll: true }); } catch (e) {} }
+    flushQueuedToast(); // e.g. 'Restored 214 days', now that the page is live again
   }
   sheet.addEventListener('close', onSheetClosed); // also covers a close the browser forces
   sheet.addEventListener('cancel', function (e) { e.preventDefault(); closeSheet(); }); // Escape
@@ -2629,7 +2675,10 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     $('undoRestoreBtn').hidden = !snap;
     if (snap && !undoRestoreArmed) {
       var at = Number(snap.at);
-      $('undoRestoreLabel').textContent = 'Undo last restore' + (isFinite(at) && at > MIN_TS ? ' (' + FMT.monthDay(at) + ', ' + FMT.time(at) + ')' : '');
+      var when = isFinite(at) && at > MIN_TS ? FMT.monthDay(at) + ', ' + FMT.time(at) : '';
+      $('undoRestoreLabel').textContent = 'Undo last restore';
+      $('undoRestoreWhen').textContent = when; // a second line, so the 52px row never wraps
+      $('undoRestoreWhen').hidden = !when;
     }
     $('appVersion').textContent = 'Version ' + APP_VERSION;
   }
@@ -2728,8 +2777,11 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     hideErr('pvError');
     syncFromStorage();
     if (storageMode !== 'ok') { showErr('pvError', 'Restore needs working storage.'); return; }
-    // First keep the current data exactly as stored, or restore nothing.
+    // First keep the current data exactly as stored, or restore nothing. The snapshot of the
+    // previous restore is remembered, so a restore that then fails can put it back.
+    var prevSnap = null;
     try {
+      prevSnap = window.localStorage.getItem(RESTORE_KEY);
       var raw = window.localStorage.getItem(STORAGE_KEY);
       window.localStorage.setItem(RESTORE_KEY, JSON.stringify({ at: Date.now(), raw: raw }));
     } catch (e) { showErr('pvError', 'Not enough space to restore safely.'); return; }
@@ -2744,9 +2796,19 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
       state = prevState;
       writeFailed = prevFailed;
       if (!prevFailed) hideBanner('writefail');
+      // Nothing was restored, so no 'Undo last restore' may point at this moment: put the
+      // previous snapshot back, or drop the new one if even that does not fit.
+      try {
+        if (prevSnap === null) window.localStorage.removeItem(RESTORE_KEY);
+        else window.localStorage.setItem(RESTORE_KEY, prevSnap);
+      } catch (e) { try { window.localStorage.removeItem(RESTORE_KEY); } catch (e2) {} }
       showErr('pvError', 'Not enough space to restore safely.');
       return;
     }
+    // What is stored now reads fine; the damaged string stays quarantined under CORRUPT_KEY.
+    // Undoing this restore brings the banner back (see undoRestore).
+    corruptHiddenByRestore = !!activeBanners.corrupt;
+    hideBanner('corrupt');
     setMeta({ lastRestoreAt: Date.now() });
     editKey = null;
     undoSnap = null;
@@ -2766,7 +2828,11 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
     editKey = null;
     undoSnap = null;
     historyDirty = true;
-    loadState();
+    loadState(); // shows the corrupt banner itself if the snapshot is the damaged string
+    // Back to the data the corrupt banner was about (boot had already replaced the damaged
+    // string with the recovered copy): the banner, with its export, comes back too.
+    if (corruptHiddenByRestore && corruptRaw !== null && storageMode === 'ok') showBanner('corrupt');
+    corruptHiddenByRestore = false;
     render();
     if (sheetActive) closeSheet();
     toast('Restore undone', { icon: 'info' });
@@ -2813,7 +2879,7 @@ h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   // Undoing an old restore also drops everything logged since, so it needs a second tap too.
   $('undoRestoreBtn').addEventListener('click', function () {
     if (undoRestoreArmed) { disarmUndoRestore(); undoRestore(); return; }
-    $('undoRestoreLabel').textContent = 'Tap again to undo the restore';
+    $('undoRestoreLabel').textContent = 'Tap again to undo';
     this.classList.add('armed');
     undoRestoreArmed = setTimeout(function () { disarmUndoRestore(); if (sheetScreen === 'main') renderSheetMain(); }, 4000);
   });
